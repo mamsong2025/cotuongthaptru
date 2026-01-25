@@ -546,86 +546,12 @@ export const getIdleInsult = async (): Promise<string> => {
 let currentAudioSource: AudioBufferSourceNode | null = null;
 
 export async function speakText(text: string, audioContext: AudioContext, mode: 'sweet' | 'toxic') {
-  // Nếu có API Key, thử dùng Gemini TTS
-  if (apiKey) {
-    try {
-      // Dừng âm thanh đang phát trước đó
-      if (currentAudioSource) {
-        try {
-          currentAudioSource.stop();
-        } catch (e) { }
-      }
-
-      const personality = PERSONALITIES[currentPersonality];
-      let voiceStyle = '';
-
-      switch (currentPersonality) {
-        case 'baby': voiceStyle = `Giọng em bé 5 tuổi, ngọng nghịu, dễ thương: ${text}`; break;
-        case 'student': voiceStyle = `Giọng học sinh 12 tuổi, lễ phép, tò mò: ${text}`; break;
-        case 'elder': voiceStyle = mode === 'sweet' ? `Giọng ông già ngọt ngào, giả tạo: ${text}` : `Giọng ông già cười đắc ý, khinh bỉ: ${text}`; break;
-        case 'master': voiceStyle = `Giọng pháp sư bí ẩn, trầm, triết lý: ${text}`; break;
-        case 'demon': voiceStyle = `Giọng ma vương tàn ác, đáng sợ, cười ác: ${text}`; break;
-        case 'wise': voiceStyle = `Giọng phụ nữ điềm tĩnh, nhẹ nhàng, truyền cảm: ${text}`; break;
-        case 'aggressive': voiceStyle = `Giọng phụ nữ mạnh mẽ, dứt khoát, uy lực, đầy năng lượng: ${text}`; break;
-        case 'smart': voiceStyle = `Giọng phụ nữ trầm ấm, sắc sảo, có chiều sâu, hơi lạnh lùng: ${text}`; break;
-        case 'tease': voiceStyle = `Giọng phụ nữ lém lỉnh, hài hước, trêu chọc, có chút tiếng cười: ${text}`; break;
-      }
-
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: voiceStyle }] }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: {
-                voiceName: mode === 'sweet' || currentPersonality === 'baby' || currentPersonality === 'student'
-                  ? 'Kore'
-                  : 'Charon'
-              }
-            },
-          },
-        },
-      });
-
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64Audio) {
-        const audioBuffer = await decodeAudioData(decodeBase64(base64Audio), audioContext, 24000, 1);
-        const source = audioContext.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(audioContext.destination);
-        currentAudioSource = source;
-        source.start();
-        source.onended = () => { if (currentAudioSource === source) currentAudioSource = null; };
-        return; // Đã phát xong bằng Gemini
-      }
-    } catch (error) {
-      console.error("Gemini TTS Error, falling back to Web Speech:", error);
-    }
-  }
-
-  // FALLBACK: Dùng Web Speech API (Offline)
-  speakOffline(text);
+  // Đã tắt giọng nói theo yêu cầu của người dùng, chỉ giữ lại chữ.
+  console.log('[TTS-DISABLED] Skip speaking:', text);
 }
 
 function speakOffline(text: string) {
-  if (!('speechSynthesis' in window)) return;
-
-  // Dừng các câu đang nói dở
-  window.speechSynthesis.cancel();
-
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'vi-VN';
-
-  // Điều chỉnh giọng theo tính cách (cơ bản)
-  switch (currentPersonality) {
-    case 'baby': utterance.pitch = 1.5; utterance.rate = 1.1; break;
-    case 'elder': utterance.pitch = 0.8; utterance.rate = 0.9; break;
-    case 'demon': utterance.pitch = 0.5; utterance.rate = 0.8; break;
-    default: utterance.pitch = 1.0; utterance.rate = 1.0;
-  }
-
-  window.speechSynthesis.speak(utterance);
+  // Đã tắt giọng nói offline.
 }
 
 function decodeBase64(base64: string) {
