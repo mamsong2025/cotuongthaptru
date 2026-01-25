@@ -1,0 +1,832 @@
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Color, Board as BoardType, Position, Move, PieceType } from './types';
+import { INITIAL_BOARD } from './constants';
+import { isValidMove, getLegalMoves, findBestMove, getPieceAt, clearTranspositionTable, isInCheck, isKingAlive } from './engine';
+import Board from './components/Board';
+import { getStrategicTalk, getIdleInsult, speakText, resetTalkHistory, setAIPersonality } from './geminiService';
+
+const SOUNDS = {
+  MOVE: 'https://actions.google.com/sounds/v1/foley/wood_plank_drop.ogg',
+  CAPTURE: 'https://actions.google.com/sounds/v1/foley/blunt_impact.ogg',
+  WIN: 'https://actions.google.com/sounds/v1/human/human_crowd_cheer.ogg',
+  LOSS: 'https://actions.google.com/sounds/v1/cartoon/boing_fail.ogg',
+  START: 'https://actions.google.com/sounds/v1/ambiences/temple_bell_long.ogg',
+};
+
+// 30 giây mới nói 1 lần khi idle
+const IDLE_LIMIT = 30000;
+
+// Định nghĩa các tính cách AI
+interface AIPersonality {
+  name: string;
+  depth: number;
+  description: string;
+  emoji: string;
+}
+
+const AI_PERSONALITIES: Record<string, AIPersonality> = {
+  baby: {
+    name: 'Bé Bi',
+    depth: 2, // Giảm từ 3
+    description: 'Đang học cờ',
+    emoji: '👶',
+  },
+  student: {
+    name: 'Tiểu Minh',
+    depth: 3, // Giảm từ 5
+    description: 'Học sinh giỏi',
+    emoji: '🧒',
+  },
+  elder: {
+    name: 'Ông Tư',
+    depth: 4, // Giảm từ 7
+    description: 'Cao thủ làng',
+    emoji: '👴',
+  },
+  master: {
+    name: 'Sư Phụ',
+    depth: 5, // Giảm từ 9
+    description: 'Bậc thầy cờ tướng',
+    emoji: '🧙',
+  },
+  demon: {
+    name: 'Vua Cờ',
+    depth: 6, // Giảm từ 12 -> Mức này đủ khó mà không lag
+    description: 'Siêu cao thủ',
+    emoji: '🤖',
+  },
+  wise: {
+    name: 'Nữ Hiền',
+    depth: 5,
+    description: 'Điềm tĩnh, nhẹ nhàng',
+    emoji: '🧘‍♀️',
+  },
+  aggressive: {
+    name: 'Nữ Mạnh Mẽ',
+    depth: 6,
+    description: 'Chủ động, tấn công',
+    emoji: '🔥',
+  },
+  smart: {
+    name: 'Nữ Thông Minh',
+    depth: 7,
+    description: 'Mưu lược, chiến thuật',
+    emoji: '🧠',
+  },
+  tease: {
+    name: 'Nữ Trêu Chọc',
+    depth: 4,
+    description: 'Cà khịa, trêu chọc',
+    emoji: '😏',
+  },
+};
+
+const App: React.FC = () => {
+  const [board, setBoard] = useState<BoardType>(INITIAL_BOARD);
+  const [turn, setTurn] = useState<Color>(Color.RED);
+  const [selectedPos, setSelectedPos] = useState<Position | null>(null);
+  const [lastMove, setLastMove] = useState<Move | null>(null);
+  const [currentTalk, setCurrentTalk] = useState<{ text: string, mode: 'sweet' | 'toxic' }>({
+    text: "Kính chào đại hiệp! Xin mời ngài khai cuộc!",
+    mode: 'sweet'
+  });
+  const [isAiThinking, setIsAiThinking] = useState<boolean>(false);
+  const [gameOver, setGameOver] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [showChat, setShowChat] = useState<boolean>(true);
+  const [showOverlay, setShowOverlay] = useState<boolean>(true);
+  const [aiKey, setAiKey] = useState<string>('elder');
+  const [showMainMenu, setShowMainMenu] = useState<boolean>(true);
+  const [showInGameMenu, setShowInGameMenu] = useState<boolean>(false);
+  const [showAIListInMenu, setShowAIListInMenu] = useState<boolean>(false);
+  const [menuPage, setMenuPage] = useState<'main' | 'selectAI'>('main');
+
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const talkOverlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const currentAI = AI_PERSONALITIES[aiKey];
+
+  const handleSelectAI = (key: string) => {
+    setAiKey(key);
+    setAIPersonality(key);
+    setShowMainMenu(false);
+    setShowInGameMenu(false);
+    setShowAIListInMenu(false);
+    resetGame();
+    playSfx(SOUNDS.START);
+  };
+
+
+
+  const playSfx = (url: string) => {
+    if (isMuted) return;
+    const audio = new Audio(url);
+    audio.volume = 0.4;
+    audio.play().catch(() => { });
+  };
+
+  const triggerTalk = async (text: string, mode: 'sweet' | 'toxic') => {
+    console.log('[DEBUG] triggerTalk:', text, mode);
+    setCurrentTalk({ text, mode });
+    setShowOverlay(true);
+
+    // Hiển thị 30 giây mới tắt (để người chơi kịp đọc)
+    if (talkOverlayTimerRef.current) clearTimeout(talkOverlayTimerRef.current);
+    talkOverlayTimerRef.current = setTimeout(() => {
+      setShowOverlay(false);
+      talkOverlayTimerRef.current = null;
+    }, 30000);
+
+    try {
+      if (!isMuted && audioCtxRef.current && showChat) {
+        await speakText(text, audioCtxRef.current, mode);
+      }
+    } catch (error) {
+      console.error('[DEBUG] TTS error:', error);
+    }
+  };
+
+  const startIdleTimer = useCallback(() => {
+    console.log('[DEBUG] startIdleTimer called, turn:', turn, 'gameOver:', gameOver);
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    if (turn === Color.RED && !gameOver) {
+      idleTimerRef.current = setTimeout(async () => {
+        console.log('[DEBUG] Idle timer fired! Getting idle insult...');
+        try {
+          const msg = await getIdleInsult();
+          console.log('[DEBUG] Idle message:', msg);
+          await triggerTalk(msg, 'sweet');
+        } catch (error) {
+          console.error('[DEBUG] Idle talk error:', error);
+          // Fallback message
+          await triggerTalk("Đại hiệp ơi, còn đó không? Đến lượt ngài rồi!", 'sweet');
+        }
+        startIdleTimer(); // Restart timer
+      }, IDLE_LIMIT); // 30 giây
+    }
+  }, [turn, gameOver, isMuted, showChat]);
+
+  useEffect(() => {
+    const initAudio = () => {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      }
+    };
+    window.addEventListener('mousedown', initAudio, { once: true });
+    return () => window.removeEventListener('mousedown', initAudio);
+  }, []);
+
+  useEffect(() => {
+    startIdleTimer();
+    return () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      if (talkOverlayTimerRef.current) clearTimeout(talkOverlayTimerRef.current);
+    };
+  }, [startIdleTimer]);
+
+  // Cập nhật tính cách AI khi thay đổi
+  useEffect(() => {
+    setAIPersonality(aiKey);
+  }, [aiKey]);
+
+  const triggerAiMove = useCallback(async (currentBoard: BoardType) => {
+    if (isAiThinking || gameOver) return;
+
+    setIsAiThinking(true);
+    // Reset idle timer khi AI đang suy nghĩ
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+
+    setTimeout(async () => {
+      const bestMove = findBestMove(currentBoard, currentAI.depth, true);
+
+      if (bestMove) {
+        const newBoard = currentBoard.map(row => [...row]);
+        const piece = newBoard[bestMove.from.r][bestMove.from.c];
+        const captured = newBoard[bestMove.to.r][bestMove.to.c];
+
+        newBoard[bestMove.to.r][bestMove.to.c] = piece;
+        newBoard[bestMove.from.r][bestMove.from.c] = null;
+
+        setBoard(newBoard);
+        setLastMove(bestMove);
+        setTurn(Color.RED);
+        setIsAiThinking(false);
+
+        playSfx(captured ? SOUNDS.CAPTURE : SOUNDS.MOVE);
+
+        if (captured?.type === PieceType.KING) {
+          setGameOver(`${currentAI.name} THẮNG! Ngươi thua rồi!`);
+          playSfx(SOUNDS.LOSS);
+          return;
+        }
+
+        // Thoại AI - chửi ngay khi ăn quân, chiếu tướng, hoặc giăng bẫy
+        const pieceNames: Record<PieceType, string> = {
+          [PieceType.KING]: 'Tướng',
+          [PieceType.ADVISOR]: 'Sĩ',
+          [PieceType.ELEPHANT]: 'Tượng',
+          [PieceType.HORSE]: 'Mã',
+          [PieceType.CHARIOT]: 'Xe',
+          [PieceType.CANNON]: 'Pháo',
+          [PieceType.SOLDIER]: 'Tốt',
+        };
+
+        const isCheck = isInCheck(newBoard, Color.RED);
+        const isCapture = !!captured;
+
+        let context = "";
+        let mode: 'sweet' | 'toxic' = 'toxic'; // Mac dinh la chui
+
+        if (isCheck) {
+          context = "AI VỪA CHIẾU TƯỚNG! HÃY CHỬI MẠNH VÀO! DỌA NẠT ĐỐI THỦ!";
+          if (isCapture) {
+            context += ` Kèm theo việc ăn mất quân ${pieceNames[captured.type].toUpperCase()} của nó! TIN VUI KÉP!`;
+          }
+        } else if (isCapture) {
+          context = `AI VỪA ĂN ĐƯỢC QUÂN ${pieceNames[captured.type].toUpperCase()}! CHỬI NGU! CHÊ BAI KỸ NĂNG!`;
+          // Nếu ăn Xe hoặc Pháo -> Chửi thậm tệ hơn
+          if (captured.type === PieceType.CHARIOT || captured.type === PieceType.CANNON) {
+            context += " ĐÂY LÀ QUÂN CHỦ LỰC. HÃY CƯỜI KHINH BỈ!";
+          }
+        } else {
+          // Nước đi thường -> Giả định là giăng bẫy/dụ địch (vì AI đã tính toán best move)
+          context = "AI vừa đi một nước thâm độc, đang giăng bẫy dụ địch. Hãy nói kiểu bí hiểm, đe dọa, hoặc dụ dỗ nó đi vào chỗ chết.";
+        }
+
+        // Khi ăn quân: chửi ngay lập tức, không delay
+        console.log('[DEBUG] Getting strategic talk, context:', context);
+        try {
+          const talk = await getStrategicTalk(mode, context);
+          console.log('[DEBUG] Strategic talk:', talk);
+          await triggerTalk(talk, mode);
+        } catch (error) {
+          console.error('[DEBUG] Strategic talk error:', error);
+          // Fallback message
+          await triggerTalk("Haha! Ta đã tính trước nước này rồi!", mode);
+        }
+
+        // Restart idle timer sau khi AI đi xong
+        startIdleTimer();
+      } else {
+        setGameOver("Ngươi thắng?! Chắc ta nương tay thôi!");
+        playSfx(SOUNDS.WIN);
+        setIsAiThinking(false);
+      }
+    }, 50);
+  }, [isMuted, currentAI, showChat, startIdleTimer]);
+
+  const handleCellClick = async (pos: Position) => {
+    if (gameOver || isAiThinking || turn !== Color.RED) return;
+
+    const piece = getPieceAt(board, pos);
+    if (piece && piece.color === Color.RED) {
+      setSelectedPos(pos);
+      return;
+    }
+
+    if (selectedPos) {
+      const move: Move = { from: selectedPos, to: pos };
+      // Kiểm tra nước đi có trong danh sách nước hợp lệ không (đã lọc chiếu tướng)
+      const legalMoves = getLegalMoves(board, Color.RED);
+      const isLegal = legalMoves.some(m =>
+        m.from.r === move.from.r && m.from.c === move.from.c &&
+        m.to.r === move.to.r && m.to.c === move.to.c
+      );
+
+      if (isLegal) {
+        const newBoard = board.map(row => [...row]);
+        const capturedByPlayer = newBoard[pos.r][pos.c];
+        newBoard[pos.r][pos.c] = newBoard[selectedPos.r][selectedPos.c];
+        newBoard[selectedPos.r][selectedPos.c] = null;
+
+        setBoard(newBoard);
+        setLastMove(move);
+        setSelectedPos(null);
+        setTurn(Color.BLACK);
+        playSfx(capturedByPlayer ? SOUNDS.CAPTURE : SOUNDS.MOVE);
+
+        // Kiểm tra ăn Tướng AI
+        if (capturedByPlayer?.type === PieceType.KING) {
+          setGameOver("🎉 Bạn thắng! Tướng AI đã bị ăn!");
+          playSfx(SOUNDS.WIN);
+          return;
+        }
+
+        triggerAiMove(newBoard);
+      } else {
+        setSelectedPos(null);
+      }
+    }
+  };
+
+  const resetGame = () => {
+    setBoard(INITIAL_BOARD);
+    setTurn(Color.RED);
+    setSelectedPos(null);
+    setLastMove(null);
+    setCurrentTalk({ text: `${currentAI.name} sẵn sàng! Mời ngài khai cuộc!`, mode: 'sweet' });
+    setGameOver(null);
+    setIsAiThinking(false);
+    setShowOverlay(true);
+    clearTranspositionTable();
+    resetTalkHistory();
+    playSfx(SOUNDS.START);
+  };
+
+  const handleAIChange = (key: string) => {
+    setAiKey(key);
+    resetTalkHistory();
+    setCurrentTalk({
+      text: `${AI_PERSONALITIES[key].name} xuất hiện! ${AI_PERSONALITIES[key].description}`,
+      mode: 'sweet'
+    });
+    setShowOverlay(true);
+  };
+
+  if (showMainMenu) {
+    // Sub-menu: Chọn đối thủ AI
+    if (menuPage === 'selectAI') {
+      return (
+        <div className="min-h-screen text-white flex flex-col items-center justify-center p-4 font-serif relative overflow-hidden"
+          style={{ background: 'linear-gradient(180deg, #2d1810 0%, #1a0f0a 50%, #0d0705 100%)' }}
+        >
+          {/* Wood Texture Background */}
+          <div className="absolute inset-0 opacity-30 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] z-0 pointer-events-none" />
+
+          {/* Back Button */}
+          <button
+            onClick={() => setMenuPage('main')}
+            className="absolute top-4 left-4 z-20 bg-[#5c3a21]/80 hover:bg-[#5c3a21] text-[#f5d0a9] px-4 py-2 rounded-full border border-[#d4af37] text-sm transition-all"
+          >
+            ← Quay lại
+          </button>
+
+          {/* Container */}
+          <div className="relative w-full max-w-sm z-10 p-6">
+            {/* Title */}
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-[#d4af37] uppercase tracking-wider">Chọn Đối Thủ</h2>
+              <p className="text-gray-400 text-xs mt-1">Chọn mức độ thử thách</p>
+            </div>
+
+            <div className="space-y-3">
+              {[
+                { id: 'baby', title: 'Novice', sub: 'Mới tập chơi', label: '初學者' },
+                { id: 'student', title: 'Apprentice', sub: 'Đang học nghề', label: '學徒' },
+                { id: 'wise', title: 'Serene', sub: 'Nữ Hiền tinh anh', label: '賢者' },
+                { id: 'aggressive', title: 'Warrior', sub: 'Nữ Mạnh Mẽ áp sát', label: '戰士' },
+                { id: 'smart', title: 'Strategist', sub: 'Nữ Thông Minh mưu lược', label: '謀略' },
+                { id: 'tease', title: 'Prankster', sub: 'Nữ Trêu Chọc cà khịa', label: '逗趣' },
+                { id: 'elder', title: 'Amateur', sub: 'Thử thách cân bằng', label: '業餘' },
+                { id: 'master', title: 'Professional', sub: 'Đối thủ kinh nghiệm', label: '專業' },
+                { id: 'demon', title: 'Grandmaster', sub: 'Thử thách cực đại', label: '宗師' }
+              ].map((item, idx) => (
+                <button
+                  key={item.id}
+                  onClick={() => { setMenuPage('main'); handleSelectAI(item.id); }}
+                  className="w-full relative group overflow-hidden rounded-full py-3 px-5 border-2 border-[#8b6914] transition-all duration-300 hover:scale-105 hover:border-[#d4af37]"
+                  style={{
+                    background: `linear-gradient(135deg, #5c3a21 0%, #3d2815 100%)`,
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)'
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                  <div className="flex items-center justify-between relative z-10">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{['📜', '⛑️', '🧘‍♀️', '🔥', '🧠', '😏', '🛡️', '⚔️', '👹'][idx]}</span>
+                      <div className="text-left">
+                        <div className="font-bold text-[#f5d0a9] tracking-wide">{item.title}</div>
+                        <div className="text-[10px] text-gray-400">{item.sub}</div>
+                      </div>
+                    </div>
+                    <span className="text-[#d4af37] text-lg font-serif">{item.label}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Main Menu - theo mẫu hình ảnh
+    return (
+      <div className="min-h-screen text-white flex flex-col items-center justify-between p-4 font-serif relative overflow-hidden"
+        style={{ background: 'linear-gradient(180deg, #2d1810 0%, #1a0f0a 50%, #0d0705 100%)' }}
+      >
+        {/* Wood Texture Background */}
+        <div className="absolute inset-0 opacity-30 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] z-0 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-black/60 z-0 pointer-events-none" />
+
+        {/* Decorative Chess Pieces */}
+        <div className="absolute top-10 left-4 text-6xl opacity-20 rotate-[-15deg] z-0">將</div>
+        <div className="absolute top-20 right-4 text-5xl opacity-15 rotate-[15deg] z-0">帥</div>
+        <div className="absolute bottom-32 left-6 text-4xl opacity-10 rotate-[-10deg] z-0">馬</div>
+        <div className="absolute bottom-40 right-8 text-4xl opacity-10 rotate-[20deg] z-0">炮</div>
+
+        {/* Top Section - Logo */}
+        <div className="relative z-10 flex flex-col items-center mt-8">
+          {/* Chess Piece Icon */}
+          <div
+            className="w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-2xl"
+            style={{
+              background: 'linear-gradient(145deg, #f5d0a9 0%, #c9a66b 50%, #8b6914 100%)',
+              border: '4px solid #5c3a21',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.3)'
+            }}
+          >
+            <span className="text-5xl text-[#8b0000] font-bold" style={{ fontFamily: '"KaiTi", "SimSun", serif' }}>將</span>
+          </div>
+
+          {/* Logo Text - "Cờ Tướng" */}
+          <h1
+            className="text-5xl font-bold tracking-wide"
+            style={{
+              fontFamily: '"Brush Script MT", "Segoe Script", cursive',
+              background: 'linear-gradient(180deg, #f5d0a9 0%, #d4af37 50%, #8b6914 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
+            }}
+          >
+            Cờ Tướng
+          </h1>
+          <p className="text-[#8b6914] text-sm mt-1 italic">Xiangqi Master</p>
+        </div>
+
+        {/* Center Section - Menu Buttons */}
+        <div className="relative z-10 w-full max-w-xs space-y-4 my-8">
+          {/* Chơi Với Máy */}
+          <button
+            onClick={() => setMenuPage('selectAI')}
+            className="w-full relative group overflow-hidden rounded-full py-4 px-6 transition-all duration-300 hover:scale-105"
+            style={{
+              background: 'linear-gradient(135deg, #5c3a21 0%, #8b5a2b 50%, #5c3a21 100%)',
+              border: '3px solid #8b6914',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.15), inset 0 -2px 4px rgba(0,0,0,0.2)'
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+            <div className="flex items-center justify-center gap-3 relative z-10">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(145deg, #f5d0a9, #c9a66b)',
+                  border: '2px solid #5c3a21'
+                }}
+              >
+                <span className="text-[#8b0000] text-sm font-bold">將</span>
+              </div>
+              <span className="text-[#f5d0a9] font-bold text-lg tracking-wide">Chơi Với Máy</span>
+            </div>
+          </button>
+
+          {/* Hai Người Chơi */}
+          <button
+            onClick={() => alert('Tính năng đang phát triển!')}
+            className="w-full relative group overflow-hidden rounded-full py-4 px-6 transition-all duration-300 hover:scale-105"
+            style={{
+              background: 'linear-gradient(135deg, #5c3a21 0%, #8b5a2b 50%, #5c3a21 100%)',
+              border: '3px solid #8b6914',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.15), inset 0 -2px 4px rgba(0,0,0,0.2)'
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+            <div className="flex items-center justify-center gap-3 relative z-10">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(145deg, #f5d0a9, #c9a66b)',
+                  border: '2px solid #5c3a21'
+                }}
+              >
+                <span className="text-[#8b0000] text-sm font-bold">帥</span>
+              </div>
+              <span className="text-[#f5d0a9] font-bold text-lg tracking-wide">Hai Người Chơi</span>
+            </div>
+          </button>
+
+          {/* Xếp Quân */}
+          <button
+            onClick={() => alert('Tính năng đang phát triển!')}
+            className="w-full relative group overflow-hidden rounded-full py-4 px-6 transition-all duration-300 hover:scale-105"
+            style={{
+              background: 'linear-gradient(135deg, #5c3a21 0%, #8b5a2b 50%, #5c3a21 100%)',
+              border: '3px solid #8b6914',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.15), inset 0 -2px 4px rgba(0,0,0,0.2)'
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+            <div className="flex items-center justify-center gap-3 relative z-10">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(145deg, #f5d0a9, #c9a66b)',
+                  border: '2px solid #5c3a21'
+                }}
+              >
+                <span className="text-[#8b0000] text-sm font-bold">車</span>
+              </div>
+              <span className="text-[#f5d0a9] font-bold text-lg tracking-wide">Xếp Quân</span>
+            </div>
+          </button>
+        </div>
+
+        {/* Bottom Section - Footer Icons */}
+        <div className="relative z-10 w-full max-w-sm mb-6">
+          <div className="flex justify-around items-center py-3 px-4 rounded-xl"
+            style={{
+              background: 'rgba(0,0,0,0.3)',
+              backdropFilter: 'blur(10px)'
+            }}
+          >
+            <button className="flex flex-col items-center gap-1 opacity-70 hover:opacity-100 transition-opacity">
+              <div className="w-10 h-10 rounded-full bg-[#3b5998] flex items-center justify-center">
+                <span className="text-white text-lg">f</span>
+              </div>
+              <span className="text-[10px] text-gray-400">Fanpage</span>
+            </button>
+
+            <button className="flex flex-col items-center gap-1 opacity-70 hover:opacity-100 transition-opacity">
+              <div className="w-10 h-10 rounded-full bg-[#e91e63] flex items-center justify-center">
+                <span className="text-white text-lg">♥</span>
+              </div>
+              <span className="text-[10px] text-gray-400">Yêu Thích</span>
+            </button>
+
+            <button className="flex flex-col items-center gap-1 opacity-70 hover:opacity-100 transition-opacity">
+              <div className="w-10 h-10 rounded-full bg-[#5c3a21] flex items-center justify-center border border-[#8b6914]">
+                <span className="text-[#f5d0a9] text-lg">🎮</span>
+              </div>
+              <span className="text-[10px] text-gray-400">Games Khác</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="min-h-screen text-white flex flex-col items-center justify-start py-3 px-2 font-sans"
+      style={{
+        background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)',
+      }}
+    >
+      {/* Header với tên AI */}
+      <header className="mb-2 text-center">
+        <h1
+          className="text-xl md:text-3xl font-black tracking-tight uppercase flex items-center justify-center gap-2"
+          style={{
+            background: 'linear-gradient(180deg, #ef4444 0%, #b91c1c 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
+          <span>{currentAI.emoji}</span>
+          <span>{currentAI.name}</span>
+        </h1>
+        <p className="text-gray-400 text-[9px] uppercase tracking-widest mt-0.5">
+          {currentAI.description} • {turn === Color.RED ? '⚔️ Lượt của ngài' : '🧠 Đang suy tính...'}
+        </p>
+
+        {/* CHECK WARNING */}
+        {isInCheck(board, Color.RED) && !gameOver && (
+          <div className="mt-2 text-xl md:text-2xl font-black text-yellow-400 animate-pulse uppercase tracking-wider bg-red-900/50 px-4 py-1 rounded inline-block border border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+            ⚠️ Chiếu Tướng! ⚠️
+          </div>
+        )}
+      </header>
+
+      {/* Bàn cờ */}
+      <div className="relative flex justify-center w-full">
+        <Board
+          board={board}
+          selectedPos={selectedPos}
+          onCellClick={handleCellClick}
+          lastMove={lastMove}
+          legalMoves={selectedPos ? getLegalMoves(board, Color.RED).filter(m => m.from.r === selectedPos.r && m.from.c === selectedPos.c) : []}
+          riverMessage={showOverlay && showChat ? currentTalk : null}
+        />
+
+        {isAiThinking && (
+          <div className="absolute top-3 right-3 z-50">
+            <div className="bg-black/80 px-2 py-1 border border-amber-500 flex items-center gap-2 rounded">
+              <div className="w-3 h-3 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-[9px] font-bold text-amber-300">{currentAI.name} đang tính...</span>
+            </div>
+          </div>
+        )}
+
+        {gameOver && (
+          <div className="absolute inset-0 bg-black/95 flex flex-col items-center justify-center z-[150] rounded-lg p-4 text-center">
+            <h2 className="text-lg md:text-2xl font-black text-red-500 mb-4 uppercase">{gameOver}</h2>
+            <button
+              onClick={resetGame}
+              className="bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-6 text-sm border border-red-400 transition-all uppercase rounded"
+            >
+              PHỤC THÙ
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Controls */}
+      <div className="mt-3 flex items-center gap-2 flex-wrap justify-center relative z-10">
+        <button
+          onClick={() => setIsMuted(!isMuted)}
+          className={`w-9 h-9 rounded-lg border flex items-center justify-center text-base transition-all ${isMuted
+            ? 'border-gray-600 bg-gray-800 text-gray-500'
+            : 'border-amber-500 bg-amber-900/30 text-amber-400'
+            }`}
+        >
+          {isMuted ? '🔇' : '🔊'}
+        </button>
+
+        <button
+          onClick={resetGame}
+          className="h-9 px-4 bg-gradient-to-b from-red-700 to-red-800 hover:from-red-600 hover:to-red-700 text-white font-bold text-[10px] uppercase rounded-lg border border-red-500 transition-all shadow-lg"
+        >
+          🔄 Ván Mới
+        </button>
+      </div>
+
+      {/* FOOTER CSS & MENU OVERLAY */}
+      <style>{`
+        .menu-btn {
+          position: fixed;
+          top: 16px;
+          right: 16px;
+          width: 44px;
+          height: 44px;
+          border-radius: 10px;
+          border: none;
+          background: rgba(0,0,0,0.6);
+          color: #fff;
+          font-size: 22px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .menu-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.65);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.25s ease;
+        }
+
+        .menu-overlay.show {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        .menu-panel {
+          width: 300px;
+          background: #1c1c1c;
+          border: 2px solid #c9a24d;
+          border-radius: 16px;
+          padding: 24px;
+          text-align: center;
+          color: #fff;
+          transform: scale(0.85);
+          transition: transform 0.25s ease;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+
+        .menu-overlay.show .menu-panel {
+          transform: scale(1);
+        }
+
+        .menu-title {
+          font-size: 22px;
+          font-weight: bold;
+          margin-bottom: 20px;
+          letter-spacing: 2px;
+          color: #d4af37;
+        }
+
+        .menu-item {
+          width: 100%;
+          padding: 14px;
+          margin: 12px 0;
+          font-size: 16px;
+          font-weight: bold;
+          border-radius: 12px;
+          border: none;
+          cursor: pointer;
+          color: #fff;
+          transition: all 0.2s;
+        }
+
+        .menu-item:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+
+        .btn-ai {
+          background: linear-gradient(135deg, #4caf50, #2e7d32);
+          box-shadow: 0 4px 0 #1b5e20;
+        }
+        .btn-ai:active:not(:disabled) {
+          transform: translateY(2px);
+          box-shadow: none;
+        }
+
+        .btn-exit {
+          background: linear-gradient(135deg, #e53935, #b71c1c);
+          box-shadow: 0 4px 0 #7f0000;
+        }
+        .btn-exit:active {
+          transform: translateY(2px);
+          box-shadow: none;
+        }
+
+        .ai-list {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.3s ease;
+        }
+
+        .ai-list.show {
+          max-height: 400px;
+          margin-bottom: 15px;
+        }
+
+        .ai-option {
+          background: #2a2a2a;
+          border-radius: 10px;
+          padding: 12px;
+          margin: 8px 0;
+          cursor: pointer;
+          transition: background 0.2s;
+          text-align: left;
+          border: 1px solid transparent;
+        }
+
+        .ai-option:hover {
+          background: #3a3a3a;
+          border-color: #d4af37;
+        }
+      `}</style>
+
+      {/* Floating Menu Button */}
+      {!gameOver && (
+        <button className="menu-btn" onClick={() => { playSfx(SOUNDS.MOVE); setShowInGameMenu(true); }}>
+          ☰
+        </button>
+      )}
+
+      {/* In-Game Menu Overlay */}
+      <div className={`menu-overlay ${showInGameMenu ? 'show' : ''}`} onClick={() => setShowInGameMenu(false)}>
+        <div className="menu-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="menu-title">MENU</div>
+
+          <button
+            className="menu-item btn-ai"
+            disabled={turn !== Color.RED || isAiThinking}
+            onClick={() => setShowAIListInMenu(!showAIListInMenu)}
+          >
+            {turn === Color.RED && !isAiThinking ? "🤖 CHỌN AI" : "⏳ ĐANG LƯỢT AI"}
+          </button>
+
+          <div className={`ai-list ${showAIListInMenu ? 'show' : ''} overflow-y-auto pr-2`}>
+            {Object.entries(AI_PERSONALITIES).map(([key, ai]) => (
+              <div key={key} className="ai-option" onClick={() => handleSelectAI(key)}>
+                {ai.emoji} {ai.name} – {ai.description}
+              </div>
+            ))}
+          </div>
+
+          <button className="menu-item btn-exit" onClick={() => {
+            if (confirm("Thoát ván hiện tại?")) {
+              setShowMainMenu(true);
+              setShowInGameMenu(false);
+            }
+          }}>
+            🚪 THOÁT GAME
+          </button>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <p className="mt-4 text-gray-500 text-[8px] uppercase tracking-widest text-center opacity-50 relative z-10">
+        Cẩn thận lời dụ dỗ • Mỗi AI một tính cách
+      </p>
+    </div>
+  );
+};
+
+export default App;
