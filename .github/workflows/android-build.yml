@@ -35,7 +35,7 @@ jobs:
           cache: 'gradle'
 
       - name: Generate Icons
-        run: npx @capacitor/assets generate --android --iconPath icon.png
+        run: npx @capacitor/assets generate --android
 
       - name: Sync Capacitor
         run: npx cap sync android
