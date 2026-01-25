@@ -1,7 +1,13 @@
 
 import { GoogleGenAI, Modality } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const apiKey = process.env.API_KEY || '';
+const ai = new GoogleGenAI({ apiKey });
+
+// Kiểm tra Key để log cảnh báo thay vì sập app
+if (!apiKey) {
+  console.error('[CRITICAL] GEMINI_API_KEY is missing! AI functions will not work.');
+}
 
 // =====================================================
 // TÍNH CÁCH AI - MỖI AI MỘT PHONG CÁCH KHÁC NHAU
