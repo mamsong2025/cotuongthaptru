@@ -108,7 +108,12 @@ const App: React.FC = () => {
 
   const currentAI = AI_PERSONALITIES[aiKey];
 
-  const handleSelectAI = (key: string) => {
+  const handleSelectAI = async (key: string) => {
+    // Mobile Audio Resume
+    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+      await audioCtxRef.current.resume().catch(console.error);
+    }
+
     setAiKey(key);
     setAIPersonality(key);
     setShowMainMenu(false);
@@ -172,10 +177,16 @@ const App: React.FC = () => {
     const initAudio = () => {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      } else if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => { });
       }
     };
     window.addEventListener('mousedown', initAudio, { once: true });
-    return () => window.removeEventListener('mousedown', initAudio);
+    window.addEventListener('touchstart', initAudio, { once: true });
+    return () => {
+      window.removeEventListener('mousedown', initAudio);
+      window.removeEventListener('touchstart', initAudio);
+    };
   }, []);
 
   useEffect(() => {

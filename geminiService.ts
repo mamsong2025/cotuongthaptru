@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Modality } from "@google/genai";
 
-const apiKey = process.env.API_KEY || '';
+const apiKey = process.env.VITE_GEMINI_API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
 
 // Kiểm tra Key để log cảnh báo thay vì sập app
