@@ -14,7 +14,7 @@ const PIECE_CHARS: Record<Color, Record<PT, string>> = {
     [PT.KING]: '帥',
     [PT.ADVISOR]: '仕',
     [PT.ELEPHANT]: '相',
-    [PT.HORSE]: '馬',
+    [PT.HORSE]: '傌',
     [PT.CHARIOT]: '俥',
     [PT.CANNON]: '炮',
     [PT.SOLDIER]: '兵',
@@ -90,10 +90,10 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
       >
         <span
           style={{
-            fontSize: '28px',
-            fontFamily: "'Zhi Mang Xing', 'Ma Shan Zheng', 'Noto Serif TC', cursive, serif",
-            fontWeight: 400,
-            color: isRed ? '#a01010' : '#000000',
+            fontSize: '24px',
+            fontFamily: "'Noto Serif TC', 'serif'", // High compatibility
+            fontWeight: 900,
+            color: isRed ? '#991b1b' : '#111827',
             textShadow: isRed
               ? '0.5px 0.5px 0px rgba(255,255,255,0.4)'
               : '0.5px 0.5px 0px rgba(255,255,255,0.2)',

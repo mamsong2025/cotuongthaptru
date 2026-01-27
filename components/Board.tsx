@@ -252,10 +252,10 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
       <div
         style={{
           position: 'absolute',
-          top: padding + cellSize * 4.5, // Chính giữa sông (giữa hàng 4 và 5)
+          top: padding + cellSize * 4, // Bắt đầu từ hàng 4
           left: 0,
           right: 0,
-          transform: 'translateY(-50%)',
+          height: cellSize, // Chiều cao đúng bằng 1 ô (độ rộng sông)
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -267,19 +267,19 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
           <div
             key={riverMessage.text}
             style={{
-              padding: '4px 12px',
-              borderRadius: '6px',
+              padding: '2px 8px',
+              borderRadius: '4px',
               textAlign: 'center',
               fontWeight: 700,
-              fontSize: '11px',
-              lineHeight: '1.2',
-              maxWidth: '80%',
+              fontSize: '10px',
+              lineHeight: '1.1',
+              maxWidth: '85%',
               background: riverMessage.mode === 'sweet'
-                ? 'rgba(20, 184, 166, 0.92)'
-                : 'rgba(220, 38, 38, 0.95)',
+                ? 'rgba(20, 184, 166, 0.95)'
+                : 'rgba(220, 38, 38, 0.98)',
               color: 'white',
               border: riverMessage.mode === 'sweet' ? '1px solid #5eead4' : '1px solid #fca5a5',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
               animation: 'fadeSlide 8s ease-in-out forwards',
             }}
           >
