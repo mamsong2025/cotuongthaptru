@@ -14,8 +14,8 @@ const SOUNDS = {
   START: 'https://actions.google.com/sounds/v1/ambiences/temple_bell_long.ogg',
 };
 
-// 30 giây mới nói 1 lần khi idle
-const IDLE_LIMIT = 30000;
+// 10 giây mới nói 1 lần khi idle
+const IDLE_LIMIT = 10000;
 
 // Định nghĩa các tính cách AI
 interface AIPersonality {
@@ -326,6 +326,20 @@ const App: React.FC = () => {
         }
 
         triggerAiMove(newBoard);
+
+        // Thoại AI sau khi người chơi đi - cà khịa nước đi của người chơi
+        const isCheck = isInCheck(newBoard, Color.BLACK);
+        const isCapture = !!capturedByPlayer;
+        let pContext = isCheck ? "Người chơi vừa chiếu tướng AI! Hãy chửi rủa sự xấc xược này và dọa lật kèo!" :
+          isCapture ? `Người chơi vừa ăn quân của AI. Hãy chửi nó là đồ ăn may và dọa sẽ đòi lại gấp đôi!` :
+            "Người chơi vừa đi một nước. Hãy chê nước đi đó là tầm thường, ngốc nghếch.";
+
+        try {
+          const talk = await getStrategicTalk('toxic', pContext);
+          await triggerTalk(talk, 'toxic');
+        } catch (e) {
+          console.error(e);
+        }
       } else {
         setSelectedPos(null);
       }
@@ -582,38 +596,43 @@ const App: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen text-white flex flex-col items-center justify-start py-3 px-2 font-sans"
+      className="min-h-screen text-white flex flex-col items-center justify-between py-6 px-2 font-sans overflow-hidden"
       style={{
-        background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)',
+        background: 'radial-gradient(circle at center, #1a1a2e 0%, #0f0f23 100%)',
       }}
     >
-      {/* Header với tên AI */}
-      <header className="mb-2 text-center">
-        <h1
-          className="text-xl md:text-3xl font-black tracking-tight uppercase flex items-center justify-center gap-2"
-          style={{
-            background: 'linear-gradient(180deg, #ef4444 0%, #b91c1c 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}
-        >
-          <span>{currentAI.emoji}</span>
-          <span>{currentAI.name}</span>
-        </h1>
-        <p className="text-gray-400 text-[9px] uppercase tracking-widest mt-0.5">
-          {currentAI.description} • {turn === Color.RED ? '⚔️ Lượt của ngài' : '🧠 Đang suy tính...'}
+      {/* Header với tên AI rầm rộ */}
+      <header className="mb-4 text-center">
+        <div className="relative inline-block">
+          <div className="absolute -inset-1 bg-gradient-to-r from-red-600 to-amber-500 rounded-lg blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+          <h1
+            className="relative text-3xl md:text-5xl font-black tracking-tighter uppercase flex items-center justify-center gap-3 py-2 px-6 rounded-lg bg-black/40 border border-white/10 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+            style={{
+              background: 'linear-gradient(180deg, #ffffff 0%, #f5d0a9 40%, #d4af37 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.8))',
+            }}
+          >
+            <span className="drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">{currentAI.emoji}</span>
+            <span className="animate-pulse">{currentAI.name}</span>
+          </h1>
+        </div>
+        <p className="text-[#d4af37] text-[11px] font-bold uppercase tracking-[0.3em] mt-3 drop-shadow-md">
+          {turn === Color.RED ? '⚔️ Lượt của ngài' : '🧠 Đang suy tính...'}
         </p>
 
         {/* CHECK WARNING */}
         {isInCheck(board, Color.RED) && !gameOver && (
-          <div className="mt-2 text-xl md:text-2xl font-black text-yellow-400 animate-pulse uppercase tracking-wider bg-red-900/50 px-4 py-1 rounded inline-block border border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]">
-            ⚠️ Chiếu Tướng! ⚠️
+          <div className="mt-3 text-2xl md:text-4xl font-black text-yellow-400 animate-bounce uppercase tracking-tighter bg-red-600 px-6 py-2 rounded-full border-4 border-yellow-400 shadow-[0_0_30px_rgba(239,68,68,1)]">
+            💀 CHIẾU TƯỚNG! 💀
           </div>
         )}
       </header>
 
-      {/* Bàn cờ */}
-      <div className="relative flex justify-center w-full">
+      {/* Bàn cờ - Căn giữa rầm rộ */}
+      <div className="relative flex-1 flex items-center justify-center w-full px-4 my-4">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.08)_0%,transparent_70%)] animate-pulse pointer-events-none"></div>
         <Board
           board={board}
           selectedPos={selectedPos}

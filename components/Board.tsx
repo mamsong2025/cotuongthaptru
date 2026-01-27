@@ -19,12 +19,21 @@ interface BoardProps {
 }
 
 // Kích thước ô cờ linh hoạt
+// Kích thước ô cờ linh hoạt để đạt trạng thái "Toàn màn hình"
 const getCellSize = () => {
   if (typeof window === 'undefined') return 44;
   const screenWidth = window.innerWidth;
-  // Chiều rộng khả dụng cho bàn cờ (trừ padding và border)
-  const availableWidth = screenWidth - 40; // trừ lề trái phải
-  return Math.min(44, Math.floor(availableWidth / BOARD_COLS));
+  const screenHeight = window.innerHeight;
+
+  // Trừ đi khoảng trống cho Header (~120px) và Controls (~100px)
+  const availableWidth = screenWidth - 30;
+  const availableHeight = screenHeight - 240;
+
+  const sizeByWidth = Math.floor(availableWidth / (BOARD_COLS + 1));
+  const sizeByHeight = Math.floor(availableHeight / (BOARD_ROWS + 1));
+
+  // Tăng giới hạn tối đa để bàn cờ to hơn trên màn hình lớn
+  return Math.min(65, Math.max(35, Math.min(sizeByWidth, sizeByHeight)));
 };
 
 const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove, legalMoves, riverMessage }) => {
@@ -89,14 +98,14 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
 
   return (
     <div
-      className="relative rounded-lg shadow-2xl mx-auto overflow-hidden"
+      className="relative rounded-lg shadow-2xl flex-shrink-0 overflow-hidden"
       style={{
         width: boardWidth + padding * 2,
         height: boardHeight + padding * 2,
         background: '#c9a66b',
-        border: `${Math.max(4, cellSize / 5)}px solid #8b6914`,
+        border: `${Math.max(6, cellSize / 4)}px solid #5c3a21`, // Viền đậm hơn cho rầm rộ
         boxSizing: 'content-box',
-        boxShadow: '0 10px 40px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.2)',
+        boxShadow: '0 20px 50px rgba(0,0,0,0.6), inset 0 2px 10px rgba(255,255,255,0.3)',
       }}
     >
       {/* VÂN GỖ THỰC TẾ - Nhiều lớp */}
