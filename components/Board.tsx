@@ -215,6 +215,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         ))}
 
         {/* Đường dọc - phần dưới */}
+        {/* Đường dọc - phần dưới */}
         {Array.from({ length: BOARD_COLS }).map((_, i) => (
           <line
             key={`v-bot-${i}`}
@@ -226,10 +227,6 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
             strokeWidth="1.5"
           />
         ))}
-
-        {/* Đường biên */}
-        <line x1={cellSize / 2} y1={cellSize / 2} x2={cellSize / 2} y2={boardHeight - cellSize / 2} stroke="#4a3520" strokeWidth="2.5" />
-        <line x1={boardWidth - cellSize / 2} y1={cellSize / 2} x2={boardWidth - cellSize / 2} y2={boardHeight - cellSize / 2} stroke="#4a3520" strokeWidth="2.5" />
 
         {/* Cung Đen */}
         <line x1={cellSize * 3 + 2} y1={2} x2={cellSize * 5 + 2} y2={cellSize * 2 + 2} stroke="#4a3520" strokeWidth="1" />
@@ -270,18 +267,18 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
           <div
             key={riverMessage.text} // Fix: Force animation restart on text change
             style={{
-              padding: '8px 20px',
-              borderRadius: '12px',
+              padding: '6px 14px',
+              borderRadius: '8px',
               textAlign: 'center',
-              fontWeight: 800,
-              fontSize: '14px',
-              maxWidth: '92%',
+              fontWeight: 700,
+              fontSize: '12px',
+              maxWidth: '85%',
               background: riverMessage.mode === 'sweet'
-                ? 'rgba(20, 184, 166, 0.95)'
-                : 'rgba(220, 38, 38, 0.98)',
+                ? 'rgba(20, 184, 166, 0.92)'
+                : 'rgba(220, 38, 38, 0.95)',
               color: 'white',
-              border: riverMessage.mode === 'sweet' ? '2px solid #5eead4' : '2px solid #fca5a5',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
+              border: riverMessage.mode === 'sweet' ? '1px solid #5eead4' : '1px solid #fca5a5',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
               zIndex: 150,
               pointerEvents: 'none',
               animation: 'fadeSlide 8s ease-in-out forwards',

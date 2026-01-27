@@ -90,13 +90,13 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
       >
         <span
           style={{
-            fontSize: '22px',
-            fontFamily: "'Noto Serif TC', serif",
-            fontWeight: 900,
-            color: isRed ? '#7f1d1d' : '#0f172a',
+            fontSize: '26px',
+            fontFamily: "'Ma Shan Zheng', cursive",
+            fontWeight: 400, // Ma Shan Zheng already has its own bold style
+            color: isRed ? '#8b0000' : '#000000',
             textShadow: isRed
-              ? '0 0 1px #7f1d1d, 0 1px 1px rgba(255,255,255,0.3)'
-              : '0 0 1px #0f172a, 0 1px 1px rgba(255,255,255,0.3)',
+              ? '0 1px 1px rgba(255,255,255,0.4)'
+              : '0 1px 1px rgba(255,255,255,0.2)',
             userSelect: 'none',
             lineHeight: 1,
             WebkitFontSmoothing: 'antialiased',
