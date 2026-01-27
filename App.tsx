@@ -327,16 +327,18 @@ const App: React.FC = () => {
 
         triggerAiMove(newBoard);
 
-        // Thoại AI sau khi người chơi đi - cà khịa nước đi của người chơi
+        // Thoại AI sau khi người chơi đi
         const isCheck = isInCheck(newBoard, Color.BLACK);
         const isCapture = !!capturedByPlayer;
-        let pContext = isCheck ? "Người chơi vừa chiếu tướng AI! Hãy chửi rủa sự xấc xược này và dọa lật kèo!" :
-          isCapture ? `Người chơi vừa ăn quân của AI. Hãy chửi nó là đồ ăn may và dọa sẽ đòi lại gấp đôi!` :
-            "Người chơi vừa đi một nước. Hãy chê nước đi đó là tầm thường, ngốc nghếch.";
+
+        let pMode: 'sweet' | 'toxic' = isCapture || isCheck ? 'toxic' : 'sweet';
+        let pContext = isCheck ? "Người chơi vừa chiếu tướng AI! Hãy mỉa mau sự xấc xược này và dọa lật kèo!" :
+          isCapture ? `Người chơi vừa ăn quân của AI. Hãy gắt gỏng, chửi nó là đồ ăn may!` :
+            "Người chơi vừa đi một nước cờ bình thường. Hãy nói năng nhẹ nhàng, hỏi thăm hoặc nhận xét lịch sự.";
 
         try {
-          const talk = await getStrategicTalk('toxic', pContext);
-          await triggerTalk(talk, 'toxic');
+          const talk = await getStrategicTalk(pMode, pContext);
+          await triggerTalk(talk, pMode);
         } catch (e) {
           console.error(e);
         }

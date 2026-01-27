@@ -252,35 +252,34 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
       <div
         style={{
           position: 'absolute',
-          top: padding + cellSize * 4.5, // Giữa sông
-          left: padding,
-          right: padding,
-          height: cellSize,
+          top: padding + cellSize * 4.5, // Chính giữa sông (giữa hàng 4 và 5)
+          left: 0,
+          right: 0,
+          transform: 'translateY(-50%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 50,
+          zIndex: 150,
           pointerEvents: 'none',
         }}
       >
         {riverMessage ? (
           <div
-            key={riverMessage.text} // Fix: Force animation restart on text change
+            key={riverMessage.text}
             style={{
-              padding: '6px 14px',
-              borderRadius: '8px',
+              padding: '4px 12px',
+              borderRadius: '6px',
               textAlign: 'center',
               fontWeight: 700,
-              fontSize: '12px',
-              maxWidth: '85%',
+              fontSize: '11px',
+              lineHeight: '1.2',
+              maxWidth: '80%',
               background: riverMessage.mode === 'sweet'
                 ? 'rgba(20, 184, 166, 0.92)'
                 : 'rgba(220, 38, 38, 0.95)',
               color: 'white',
               border: riverMessage.mode === 'sweet' ? '1px solid #5eead4' : '1px solid #fca5a5',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
-              zIndex: 150,
-              pointerEvents: 'none',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
               animation: 'fadeSlide 8s ease-in-out forwards',
             }}
           >
