@@ -19,21 +19,22 @@ interface BoardProps {
 }
 
 // Kích thước ô cờ linh hoạt
-// Kích thước ô cờ linh hoạt để đạt trạng thái "Toàn màn hình"
+// Kích thước ô cờ linh hoạt để đạt trạng thái "Toàn màn hình" chuẩn tỷ lệ
 const getCellSize = () => {
   if (typeof window === 'undefined') return 44;
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
 
-  // Trừ đi khoảng trống cho Header (~120px) và Controls (~100px)
-  const availableWidth = screenWidth - 30;
-  const availableHeight = screenHeight - 240;
+  // Trừ lề Header (~100px) và Controls (~80px)
+  const availableWidth = screenWidth - 40;
+  const availableHeight = screenHeight - 180;
 
-  const sizeByWidth = Math.floor(availableWidth / (BOARD_COLS + 1));
-  const sizeByHeight = Math.floor(availableHeight / (BOARD_ROWS + 1));
+  // Xiangqi board has 8 intervals width, 9 intervals height
+  // Total intersections: 9 vertical lines, 10 horizontal lines
+  const sizeByWidth = Math.floor(availableWidth / 9);
+  const sizeByHeight = Math.floor(availableHeight / 10);
 
-  // Tăng giới hạn tối đa để bàn cờ to hơn trên màn hình lớn
-  return Math.min(65, Math.max(35, Math.min(sizeByWidth, sizeByHeight)));
+  return Math.min(60, Math.max(34, Math.min(sizeByWidth, sizeByHeight)));
 };
 
 const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove, legalMoves, riverMessage }) => {
@@ -45,10 +46,10 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const boardWidth = cellSize * BOARD_COLS;
-  const boardHeight = cellSize * BOARD_ROWS;
-  const padding = cellSize / 2;
-  const animationDuration = 400;
+  const boardWidth = cellSize * (BOARD_COLS - 1);
+  const boardHeight = cellSize * (BOARD_ROWS - 1);
+  const padding = cellSize / 1.5; // Padding nhỏ hơn để bàn cờ trông gọn hơn
+  const animationDuration = 350; // Nhanh hơn để mượt hơn
   const [animatingPiece, setAnimatingPiece] = useState<{
     piece: any;
     fromR: number;
@@ -108,16 +109,14 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         boxShadow: '0 20px 50px rgba(0,0,0,0.6), inset 0 2px 10px rgba(255,255,255,0.3)',
       }}
     >
-      {/* VÂN GỖ THỰC TẾ - Nhiều lớp */}
+      {/* Vân gỗ nhẹ (dùng gradient thay cho filter nặng) */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          backgroundImage: `
-            url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")
-          `,
-          opacity: 0.08,
+          background: 'linear-gradient(rgba(101, 67, 33, 0.1), transparent)',
           mixBlendMode: 'multiply',
+          pointerEvents: 'none',
         }}
       />
 
@@ -185,18 +184,18 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
       {/* Lưới bàn cờ - SVG */}
       <svg
         className="absolute pointer-events-none"
-        width={boardWidth}
-        height={boardHeight}
-        style={{ left: padding, top: padding, zIndex: 2 }}
+        width={boardWidth + 4}
+        height={boardHeight + 4}
+        style={{ left: padding - 2, top: padding - 2, zIndex: 2 }}
       >
         {/* Đường ngang */}
         {Array.from({ length: BOARD_ROWS }).map((_, i) => (
           <line
             key={`h-${i}`}
-            x1={cellSize / 2}
-            y1={cellSize * i + cellSize / 2}
-            x2={boardWidth - cellSize / 2}
-            y2={cellSize * i + cellSize / 2}
+            x1={2}
+            y1={cellSize * i + 2}
+            x2={boardWidth + 2}
+            y2={cellSize * i + 2}
             stroke="#4a3520"
             strokeWidth="1.5"
           />
@@ -206,10 +205,10 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         {Array.from({ length: BOARD_COLS }).map((_, i) => (
           <line
             key={`v-top-${i}`}
-            x1={cellSize * i + cellSize / 2}
-            y1={cellSize / 2}
-            x2={cellSize * i + cellSize / 2}
-            y2={cellSize * 4 + cellSize / 2}
+            x1={cellSize * i + 2}
+            y1={2}
+            x2={cellSize * i + 2}
+            y2={cellSize * 4 + 2}
             stroke="#4a3520"
             strokeWidth="1.5"
           />
@@ -219,10 +218,10 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         {Array.from({ length: BOARD_COLS }).map((_, i) => (
           <line
             key={`v-bot-${i}`}
-            x1={cellSize * i + cellSize / 2}
-            y1={cellSize * 5 + cellSize / 2}
-            x2={cellSize * i + cellSize / 2}
-            y2={boardHeight - cellSize / 2}
+            x1={cellSize * i + 2}
+            y1={cellSize * 5 + 2}
+            x2={cellSize * i + 2}
+            y2={boardHeight + 2}
             stroke="#4a3520"
             strokeWidth="1.5"
           />
@@ -233,19 +232,19 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         <line x1={boardWidth - cellSize / 2} y1={cellSize / 2} x2={boardWidth - cellSize / 2} y2={boardHeight - cellSize / 2} stroke="#4a3520" strokeWidth="2.5" />
 
         {/* Cung Đen */}
-        <line x1={cellSize * 3 + cellSize / 2} y1={cellSize / 2} x2={cellSize * 5 + cellSize / 2} y2={cellSize * 2 + cellSize / 2} stroke="#4a3520" strokeWidth="1" />
-        <line x1={cellSize * 5 + cellSize / 2} y1={cellSize / 2} x2={cellSize * 3 + cellSize / 2} y2={cellSize * 2 + cellSize / 2} stroke="#4a3520" strokeWidth="1" />
+        <line x1={cellSize * 3 + 2} y1={2} x2={cellSize * 5 + 2} y2={cellSize * 2 + 2} stroke="#4a3520" strokeWidth="1" />
+        <line x1={cellSize * 5 + 2} y1={2} x2={cellSize * 3 + 2} y2={cellSize * 2 + 2} stroke="#4a3520" strokeWidth="1" />
 
         {/* Cung Đỏ */}
-        <line x1={cellSize * 3 + cellSize / 2} y1={cellSize * 7 + cellSize / 2} x2={cellSize * 5 + cellSize / 2} y2={cellSize * 9 + cellSize / 2} stroke="#4a3520" strokeWidth="1" />
-        <line x1={cellSize * 5 + cellSize / 2} y1={cellSize * 7 + cellSize / 2} x2={cellSize * 3 + cellSize / 2} y2={cellSize * 9 + cellSize / 2} stroke="#4a3520" strokeWidth="1" />
+        <line x1={cellSize * 3 + 2} y1={cellSize * 7 + 2} x2={cellSize * 5 + 2} y2={cellSize * 9 + 2} stroke="#4a3520" strokeWidth="1" />
+        <line x1={cellSize * 5 + 2} y1={cellSize * 7 + 2} x2={cellSize * 3 + 2} y2={cellSize * 9 + 2} stroke="#4a3520" strokeWidth="1" />
 
         {/* Khung viền bàn cờ */}
         <rect
-          x={cellSize / 2 - 3}
-          y={cellSize / 2 - 3}
-          width={boardWidth - cellSize + 6}
-          height={boardHeight - cellSize + 6}
+          x={2}
+          y={2}
+          width={boardWidth}
+          height={boardHeight}
           fill="none"
           stroke="#4a3520"
           strokeWidth="3"
@@ -256,32 +255,35 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
       <div
         style={{
           position: 'absolute',
-          top: padding + cellSize * 5, // Center of the river (Line 5)
+          top: padding + cellSize * 4.5, // Giữa sông
           left: padding,
           right: padding,
-          transform: 'translateY(-50%)', // Center vertically
+          height: cellSize,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 50, // Fix: Higher than pieces (z=10)
+          zIndex: 50,
           pointerEvents: 'none',
         }}
       >
         {riverMessage ? (
           <div
+            key={riverMessage.text} // Fix: Force animation restart on text change
             style={{
-              padding: '6px 16px',
-              borderRadius: '20px',
+              padding: '8px 20px',
+              borderRadius: '12px',
               textAlign: 'center',
-              fontWeight: 700,
-              fontSize: '12px',
-              maxWidth: '90%',
+              fontWeight: 800,
+              fontSize: '14px',
+              maxWidth: '92%',
               background: riverMessage.mode === 'sweet'
-                ? 'linear-gradient(135deg, rgba(13,148,136,0.95), rgba(6,95,70,0.95))'
-                : 'linear-gradient(135deg, rgba(185,28,28,0.98), rgba(127,29,29,0.98))',
+                ? 'rgba(20, 184, 166, 0.95)'
+                : 'rgba(220, 38, 38, 0.98)',
               color: 'white',
-              border: riverMessage.mode === 'sweet' ? '1px solid #14b8a6' : '2px solid #ef4444',
-              boxShadow: riverMessage.mode === 'toxic' ? '0 0 20px rgba(239,68,68,0.5)' : '0 2px 10px rgba(0,0,0,0.3)',
+              border: riverMessage.mode === 'sweet' ? '2px solid #5eead4' : '2px solid #fca5a5',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
+              zIndex: 150,
+              pointerEvents: 'none',
               animation: 'fadeSlide 8s ease-in-out forwards',
             }}
           >
@@ -314,11 +316,10 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
       <div
         style={{
           position: 'absolute',
-          left: padding + cellSize / 2 - cellSize / 2,
-          top: padding + cellSize / 2 - cellSize / 2,
+          left: padding,
+          top: padding,
           display: 'grid',
-          gridTemplateColumns: `repeat(${BOARD_COLS}, ${cellSize}px)`,
-          gridTemplateRows: `repeat(${BOARD_ROWS}, ${cellSize}px)`,
+          gridTemplateColumns: `repeat(${BOARD_COLS}, 0px)`, // Fix grid distortion
           zIndex: 10,
         }}
       >
@@ -327,7 +328,11 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
             <div
               key={`${r}-${c}`}
               style={{
-                position: 'relative',
+                position: 'absolute',
+                left: c * cellSize - cellSize / 2,
+                top: r * cellSize - cellSize / 2,
+                width: cellSize,
+                height: cellSize,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -395,8 +400,8 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         <div
           style={{
             position: 'absolute',
-            left: padding + cellSize / 2 - cellSize / 2,
-            top: padding + cellSize / 2 - cellSize / 2,
+            left: padding,
+            top: padding,
             width: boardWidth,
             height: boardHeight,
             pointerEvents: 'none',
@@ -407,13 +412,17 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
             className="animating-piece"
             style={{
               position: 'absolute',
-              left: animatingPiece.fromC * cellSize + cellSize / 2 - cellSize * 0.43,
-              top: animatingPiece.fromR * cellSize + cellSize / 2 - cellSize * 0.43,
+              left: animatingPiece.fromC * cellSize - cellSize / 2,
+              top: animatingPiece.fromR * cellSize - cellSize / 2,
+              width: cellSize,
+              height: cellSize,
               transform: animatingPiece.isAnimating
                 ? `translate(${(animatingPiece.toC - animatingPiece.fromC) * cellSize}px, ${(animatingPiece.toR - animatingPiece.fromR) * cellSize}px) scale(1.1)`
                 : 'translate(0, 0) scale(1)',
-              transition: `transform ${animationDuration}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`,
-              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))',
+              transition: `transform ${animationDuration}ms cubic-bezier(0.2, 0.8, 0.2, 1)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             <Piece

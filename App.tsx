@@ -137,12 +137,12 @@ const App: React.FC = () => {
     setCurrentTalk({ text, mode });
     setShowOverlay(true);
 
-    // Hiển thị 30 giây mới tắt (để người chơi kịp đọc)
+    // Hiển thị 8 giây theo animation (để người chơi kịp đọc)
     if (talkOverlayTimerRef.current) clearTimeout(talkOverlayTimerRef.current);
     talkOverlayTimerRef.current = setTimeout(() => {
       setShowOverlay(false);
       talkOverlayTimerRef.current = null;
-    }, 30000);
+    }, 8000);
 
     try {
       if (!isMuted && audioCtxRef.current && showChat) {
@@ -169,7 +169,7 @@ const App: React.FC = () => {
           await triggerTalk("Đại hiệp ơi, còn đó không? Đến lượt ngài rồi!", 'sweet');
         }
         startIdleTimer(); // Restart timer
-      }, IDLE_LIMIT); // 30 giây
+      }, IDLE_LIMIT);
     }
   }, [turn, gameOver, isMuted, showChat]);
 
@@ -351,8 +351,9 @@ const App: React.FC = () => {
     setTurn(Color.RED);
     setSelectedPos(null);
     setLastMove(null);
-    setCurrentTalk({ text: `${currentAI.name} sẵn sàng! Mời ngài khai cuộc!`, mode: 'sweet' });
     setGameOver(null);
+    setIsAiThinking(false);
+    triggerTalk(`${currentAI.name} sẵn sàng! Mời ngài khai cuộc!`, 'sweet');
     setIsAiThinking(false);
     setShowOverlay(true);
     clearTranspositionTable();
@@ -596,30 +597,25 @@ const App: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen text-white flex flex-col items-center justify-between py-6 px-2 font-sans overflow-hidden"
+      className="min-h-screen text-white flex flex-col items-center justify-between py-4 px-2 font-sans overflow-hidden"
       style={{
-        background: 'radial-gradient(circle at center, #1a1a2e 0%, #0f0f23 100%)',
+        background: '#0f0f23', // Đơn giản hóa background để chạy nhanh
       }}
     >
-      {/* Header với tên AI rầm rộ */}
-      <header className="mb-4 text-center">
-        <div className="relative inline-block">
-          <div className="absolute -inset-1 bg-gradient-to-r from-red-600 to-amber-500 rounded-lg blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-          <h1
-            className="relative text-3xl md:text-5xl font-black tracking-tighter uppercase flex items-center justify-center gap-3 py-2 px-6 rounded-lg bg-black/40 border border-white/10 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
-            style={{
-              background: 'linear-gradient(180deg, #ffffff 0%, #f5d0a9 40%, #d4af37 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.8))',
-            }}
-          >
-            <span className="drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">{currentAI.emoji}</span>
-            <span className="animate-pulse">{currentAI.name}</span>
-          </h1>
-        </div>
-        <p className="text-[#d4af37] text-[11px] font-bold uppercase tracking-[0.3em] mt-3 drop-shadow-md">
-          {turn === Color.RED ? '⚔️ Lượt của ngài' : '🧠 Đang suy tính...'}
+      {/* Header với tên AI tinh gọn */}
+      <header className="mb-2 text-center z-20">
+        <h1
+          className="text-2xl md:text-4xl font-black uppercase flex items-center justify-center gap-2"
+          style={{
+            color: '#d4af37', // Dùng màu cố định cho hiệu năng
+            textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+          }}
+        >
+          <span>{currentAI.emoji}</span>
+          <span>{currentAI.name}</span>
+        </h1>
+        <p className="text-[#a0a0c0] text-[10px] uppercase font-bold tracking-widest mt-1">
+          {turn === Color.RED ? '⚔️ Lượt của bạn' : '🧠 AI đang tính...'}
         </p>
 
         {/* CHECK WARNING */}
@@ -630,9 +626,8 @@ const App: React.FC = () => {
         )}
       </header>
 
-      {/* Bàn cờ - Căn giữa rầm rộ */}
-      <div className="relative flex-1 flex items-center justify-center w-full px-4 my-4">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.08)_0%,transparent_70%)] animate-pulse pointer-events-none"></div>
+      {/* Bàn cờ - Căn giữa chuẩn */}
+      <div className="relative flex-1 flex items-center justify-center w-full my-2">
         <Board
           board={board}
           selectedPos={selectedPos}

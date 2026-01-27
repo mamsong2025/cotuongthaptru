@@ -37,8 +37,10 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
   return (
     <div
       style={{
-        width: '38px',
-        height: '38px',
+        width: '100%',
+        height: '100%',
+        padding: '5%',
+        boxSizing: 'border-box',
         position: 'relative',
         cursor: 'pointer',
         transition: 'transform 0.15s ease',
@@ -88,8 +90,8 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
       >
         <span
           style={{
-            fontSize: '21px',
-            fontFamily: '"SimSun", "宋体", "Microsoft YaHei", serif',
+            fontSize: '22px',
+            fontFamily: "'Noto Serif TC', serif",
             fontWeight: 900,
             color: isRed ? '#7f1d1d' : '#0f172a',
             textShadow: isRed
