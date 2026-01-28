@@ -7,11 +7,12 @@ import Board from './components/Board';
 import { getStrategicTalk, getIdleInsult, speakText, resetTalkHistory, setAIPersonality } from './geminiService';
 
 const SOUNDS = {
-  MOVE: 'https://actions.google.com/sounds/v1/foley/wood_plank_drop.ogg',
-  CAPTURE: 'https://actions.google.com/sounds/v1/foley/blunt_impact.ogg',
-  WIN: 'https://actions.google.com/sounds/v1/human/human_crowd_cheer.ogg',
-  LOSS: 'https://actions.google.com/sounds/v1/cartoon/boing_fail.ogg',
-  START: 'https://actions.google.com/sounds/v1/ambiences/temple_bell_long.ogg',
+  MOVE: '/audio/move.mp3',
+  CAPTURE: '/audio/capture.mp3',
+  WIN: '/audio/move.mp3', // Reuse move or find a win sound
+  LOSS: '/audio/move.mp3', // Reuse move
+  START: '/audio/move.mp3', // Reuse move
+  BGM: '/audio/bgm.mp3'
 };
 
 // 10 giây mới nói 1 lần khi idle
@@ -101,8 +102,10 @@ const App: React.FC = () => {
   const [showInGameMenu, setShowInGameMenu] = useState<boolean>(false);
   const [showAIListInMenu, setShowAIListInMenu] = useState<boolean>(false);
   const [menuPage, setMenuPage] = useState<'main' | 'selectAI'>('main');
+  const [isBgmOn, setIsBgmOn] = useState<boolean>(true);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const bgmAudioRef = useRef<HTMLAudioElement | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const talkOverlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -180,6 +183,16 @@ const App: React.FC = () => {
       } else if (audioCtxRef.current.state === 'suspended') {
         audioCtxRef.current.resume().catch(() => { });
       }
+
+      // Initialize BGM if not already
+      if (!bgmAudioRef.current) {
+        bgmAudioRef.current = new Audio(SOUNDS.BGM);
+        bgmAudioRef.current.loop = true;
+        bgmAudioRef.current.volume = 0.2;
+        if (isBgmOn && !isMuted) {
+          bgmAudioRef.current.play().catch(console.error);
+        }
+      }
     };
     window.addEventListener('mousedown', initAudio, { once: true });
     window.addEventListener('touchstart', initAudio, { once: true });
@@ -187,7 +200,18 @@ const App: React.FC = () => {
       window.removeEventListener('mousedown', initAudio);
       window.removeEventListener('touchstart', initAudio);
     };
-  }, []);
+  }, [isBgmOn, isMuted]);
+
+  // Handle BGM changes
+  useEffect(() => {
+    if (bgmAudioRef.current) {
+      if (isBgmOn && !isMuted) {
+        bgmAudioRef.current.play().catch(() => { });
+      } else {
+        bgmAudioRef.current.pause();
+      }
+    }
+  }, [isBgmOn, isMuted]);
 
   useEffect(() => {
     startIdleTimer();
@@ -669,8 +693,20 @@ const App: React.FC = () => {
             ? 'border-gray-600 bg-gray-800 text-gray-500'
             : 'border-amber-500 bg-amber-900/30 text-amber-400'
             }`}
+          title="Tắt/Mở âm thanh hiệu ứng"
         >
           {isMuted ? '🔇' : '🔊'}
+        </button>
+
+        <button
+          onClick={() => setIsBgmOn(!isBgmOn)}
+          className={`w-9 h-9 rounded-lg border flex items-center justify-center text-base transition-all ${!isBgmOn || isMuted
+            ? 'border-gray-600 bg-gray-800 text-gray-500'
+            : 'border-blue-500 bg-blue-900/30 text-blue-400'
+            }`}
+          title="Tắt/Mở nhạc nền"
+        >
+          {isBgmOn && !isMuted ? '🎵' : '🔇'}
         </button>
 
         <button
