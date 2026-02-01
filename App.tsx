@@ -602,11 +602,6 @@ const App: React.FC = () => {
               alt="Cờ Tướng"
               className="h-28 object-contain drop-shadow-md"
             />
-            <img
-              src="/kinh_tang_lao_pa.png"
-              alt="Kính tặng lão pa"
-              className="h-10 md:h-12 object-contain mt-1"
-            />
           </div>
 
           {/* STATS BAR */}
@@ -645,8 +640,15 @@ const App: React.FC = () => {
           </div>
 
           {/* FOOTER */}
-          <div className="mt-8 text-[10px] font-bold opacity-30 uppercase tracking-[0.2em]" style={{ color: '#6b6b6b' }}>
-            © 2026 • Cờ Tướng 01213
+          <div className="mt-8 flex flex-col items-center gap-2">
+            <img
+              src="/kinh_tang_lao_pa.png"
+              alt="Kính tặng lão pa"
+              className="h-8 object-contain opacity-80 mb-1"
+            />
+            <div className="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em]" style={{ color: '#6b6b6b' }}>
+              © 2026 • Cờ Tướng 01213
+            </div>
           </div>
         </div>
       </div>
