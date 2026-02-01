@@ -103,6 +103,8 @@ const App: React.FC = () => {
   const [showAIListInMenu, setShowAIListInMenu] = useState<boolean>(false);
   const [menuPage, setMenuPage] = useState<'main' | 'selectAI'>('main');
   const [isBgmOn, setIsBgmOn] = useState<boolean>(true);
+  const [undoCount, setUndoCount] = useState<number>(3);
+  const [history, setHistory] = useState<{ board: BoardType, lastMove: Move | null }[]>([]);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const bgmAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -411,6 +413,13 @@ const App: React.FC = () => {
       );
 
       if (isLegal) {
+        // Lưu lịch sử trước khi đi (Deep copy board)
+        const currentHistory = {
+          board: board.map(row => row.map(piece => piece ? { ...piece } : null)),
+          lastMove
+        };
+        setHistory(prev => [...prev, currentHistory]);
+
         const newBoard = board.map(row => [...row]);
         const capturedByPlayer = newBoard[pos.r][pos.c];
         newBoard[pos.r][pos.c] = newBoard[selectedPos.r][selectedPos.c];
@@ -449,7 +458,29 @@ const App: React.FC = () => {
       } else {
         setSelectedPos(null);
       }
+    } else {
+      setSelectedPos(null);
     }
+  };
+
+  const undoMove = () => {
+    if (undoCount <= 0 || history.length === 0 || isAiThinking || gameOver) {
+      if (undoCount <= 0) alert("Đã hết lượt hồi cờ!");
+      return;
+    }
+
+    const lastState = history[history.length - 1];
+    setBoard(lastState.board);
+    setLastMove(lastState.lastMove);
+    setTurn(Color.RED);
+    setHistory(prev => prev.slice(0, -1));
+    setUndoCount(prev => prev - 1);
+
+    // Hủy trạng thái đang chọn
+    setSelectedPos(null);
+
+    triggerTalk("Hừm, đi sai thì đi lại, ta chấp!", 'sweet');
+    playSfx(SOUNDS.MOVE);
   };
 
   const resetGame = () => {
@@ -458,7 +489,10 @@ const App: React.FC = () => {
     setSelectedPos(null);
     setLastMove(null);
     setGameOver(null);
+    setGameOver(null);
     setIsAiThinking(false);
+    setUndoCount(3);
+    setHistory([]);
     triggerTalk(`${currentAI.name} sẵn sàng! Mời ngài khai cuộc!`, 'sweet');
     setIsAiThinking(false);
     setShowOverlay(true);
@@ -878,6 +912,20 @@ const App: React.FC = () => {
             }
           }}>
             🚪 THOÁT GAME
+          </button>
+
+          {/* Undo Button in Menu */}
+          <button
+            className="menu-item"
+            style={{
+              background: undoCount > 0 ? 'linear-gradient(135deg, #fbbf24, #d97706)' : '#555',
+              cursor: undoCount > 0 ? 'pointer' : 'not-allowed',
+              opacity: undoCount > 0 ? 1 : 0.6
+            }}
+            onClick={undoMove}
+            disabled={undoCount <= 0 || history.length === 0}
+          >
+            ↩️ HỒI CỜ ({undoCount} lần)
           </button>
 
         </div>
