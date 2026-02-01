@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Generate Missing Pieces</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+
+        .piece-canvas {
+            margin: 10px;
+            border: 2px solid #333;
+        }
+
+        .info {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="info">
+        <h2>Tạo quân cờ còn thiếu</h2>
+        <p>Nhấp chuột phải vào mỗi quân cờ bên dưới và chọn "Save image as..." để lưu:</p>
+        <ul>
+            <li>black_chariot_ju.png</li>
+            <li>black_cannon_pao.png</li>
+            <li>black_soldier_zu.png</li>
+        </ul>
+    </div>
+
+    <canvas id="chariot" class="piece-canvas" width="512" height="512"></canvas>
+    <canvas id="cannon" class="piece-canvas" width="512" height="512"></canvas>
+    <canvas id="soldier" class="piece-canvas" width="512" height="512"></canvas>
+
+    <script>
+        function drawPiece(canvasId, character) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+
+            // Clear canvas
+            ctx.clearRect(0, 0, 512, 512);
+
+            // Draw ivory background circle
+            const gradient = ctx.createRadialGradient(256, 200, 50, 256, 256, 256);
+            gradient.addColorStop(0, '#fdfaf0');
+            gradient.addColorStop(1, '#f4f0e6');
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(256, 256, 240, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw border
+            ctx.strokeStyle = '#dcd7c9';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Draw inner ring
+            ctx.strokeStyle = 'rgba(31, 41, 55, 0.15)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(256, 256, 230, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Draw character
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 200px "Noto Serif TC", "KaiTi", "STKaiti", serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(character, 256, 270);
+
+            // Add subtle shadow for engraved effect
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
+            ctx.shadowBlur = 1;
+            ctx.shadowOffsetX = 1;
+            ctx.shadowOffsetY = 1;
+        }
+
+        // Draw all three pieces
+        drawPiece('chariot', '車');
+        drawPiece('cannon', '砲');
+        drawPiece('soldier', '卒');
+    </script>
+</body>
+
+</html>
