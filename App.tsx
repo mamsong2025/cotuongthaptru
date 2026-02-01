@@ -565,11 +565,9 @@ const App: React.FC = () => {
           <div className="flex flex-col items-center mb-2">
             <img
               src="/logo_co_tuong.png"
-              alt="Cờ Tướng 01213"
+              alt="Cờ Tướng"
               className="h-28 object-contain drop-shadow-md"
             />
-            <h1 className="text-3xl font-bold tracking-tight mt-[-15px]"
-              style={{ color: '#2f4f3a', fontFamily: 'Georgia, serif' }}>Cờ Tướng 01213</h1>
             <img
               src="/kinh_tang_lao_pa.png"
               alt="Kính tặng lão pa"
