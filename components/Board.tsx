@@ -47,9 +47,9 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
   const boardWidth = cellSize * (BOARD_COLS - 1);
   const boardHeight = cellSize * (BOARD_ROWS - 1);
 
-  // CÂN CHỈNH CHUẨN CHO BÀN CỜ 1:1
-  const vPadding = cellSize * 0.5;
-  const hPadding = cellSize * 1.0;
+  // CÂN CHỈNH MẠNH TAY HƠN (Dịch quân cờ lên trên và sang trái để khớp hoàn hảo)
+  const vPadding = cellSize * 0.38;
+  const hPadding = cellSize * 0.88;
 
   const currentTheme = {
     bg: 'url("/board_royal.jpg")',
@@ -250,7 +250,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
           const CELL_SIZE = cellSize;
-          const PIECE_SIZE = CELL_SIZE * 0.9; // Cố định theo yêu cầu
+          const PIECE_SIZE = CELL_SIZE * 0.82; // Giảm nhẹ để vừa vặn hơn với ô cờ gỗ
           const offset = (CELL_SIZE - PIECE_SIZE) / 2;
 
           board.forEach((row, r) => {
