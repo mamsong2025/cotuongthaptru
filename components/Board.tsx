@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect, useRef } from 'react';
 import { Board as BoardType, Position, Move, Color } from '../types';
 import Piece from './Piece';
@@ -18,13 +18,13 @@ interface BoardProps {
   riverMessage?: RiverMessage | null;
 }
 
-// Kích thước ô cờ linh hoạt để đạt trạng thái "Toàn màn hình" chuẩn tỷ lệ
+// KÃ­ch thÆ°á»›c Ã´ cá» linh hoáº¡t Ä‘á»ƒ Ä‘áº¡t tráº¡ng thÃ¡i "ToÃ n mÃ n hÃ¬nh" chuáº©n tá»· lá»‡
 const getCellSize = () => {
   if (typeof window === 'undefined') return 44;
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
 
-  // Trừ lề Header (~100px) và Controls (~80px)
+  // Trá»« lá» Header (~100px) vÃ  Controls (~80px)
   const availableWidth = screenWidth - 40;
   const availableHeight = screenHeight - 180;
 
@@ -47,9 +47,10 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
   const boardWidth = cellSize * (BOARD_COLS - 1);
   const boardHeight = cellSize * (BOARD_ROWS - 1);
 
-  // HOÀN HẢO TUYỆT ĐỐI - Giá trị đã được tinh chỉnh thủ công
+  // HOÃ€N Háº¢O TUYá»†T Äá»I - GiÃ¡ trá»‹ Ä‘Ã£ Ä‘Æ°á»£c tinh chá»‰nh thá»§ cÃ´ng
   const vPadding = cellSize * 0.500;
   const hPadding = cellSize * 0.455;
+
 
   const currentTheme = {
     bg: 'url("/board_royal.jpg")',
@@ -81,6 +82,290 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
   const prevLastMoveRef = useRef<Move | null>(null);
   const prevBoardRef = useRef<BoardType>(board);
   const particleIdRef = useRef(0);
+
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+  const loadedImagesRef = useRef<Record<string, HTMLImageElement>>({});
+
+  // Preload images once
+  useEffect(() => {
+    const pieceTypes = ['KING', 'ADVISOR', 'ELEPHANT', 'HORSE', 'CHARIOT', 'CANNON', 'SOLDIER'];
+    const colors = ['RED', 'BLACK'];
+    const pieceFileMap: Record<string, Record<string, string>> = {
+      'RED': {
+        'KING': 'red_king_shuai.png',
+        'ADVISOR': 'red_advisor_shi.png',
+        'ELEPHANT': 'red_elephant_xiang.png',
+        'HORSE': 'red_horse_ma.png',
+        'CHARIOT': 'red_chariot_ju.png',
+        'CANNON': 'red_cannon_pao.png',
+        'SOLDIER': 'red_soldier_bing.png'
+      },
+      'BLACK': {
+        'KING': 'black_king_jiang.png',
+        'ADVISOR': 'black_advisor_shi.png',
+        'ELEPHANT': 'black_elephant_xiang.png',
+        'HORSE': 'black_horse_ma.png',
+        'CHARIOT': 'black_chariot_ju.png',
+        'CANNON': 'black_cannon_pao.png',
+        'SOLDIER': 'black_soldier_zu.png'
+      }
+    };
+
+    let loadedCount = 0;
+    const totalImages = 14;
+
+    colors.forEach(color => {
+      pieceTypes.forEach(type => {
+        const img = new Image();
+        img.src = `/pieces/${pieceFileMap[color][type]}`;
+        img.onload = () => {
+          loadedImagesRef.current[`${color}_${type}`] = img;
+          loadedCount++;
+          if (loadedCount === totalImages) {
+            setImagesLoaded(true);
+          }
+        };
+      });
+    });
+  }, []);
+
+  // Draw board when board changes or images loaded
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !imagesLoaded) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // High DPI Display Optimization
+    const dpr = window.devicePixelRatio || 1;
+
+    // Set actual size in memory if needed
+    if (canvas.width !== (boardWidth + hPadding * 2) * dpr) {
+      canvas.width = (boardWidth + hPadding * 2) * dpr;
+      canvas.height = (boardHeight + vPadding * 2) * dpr;
+    }
+
+    // Reset transform and set scale
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+
+    const CELL_SIZE = cellSize;
+    const PIECE_SIZE = CELL_SIZE * 0.82;
+    const offset = (CELL_SIZE - PIECE_SIZE) / 2;
+
+    board.forEach((row, r) => {
+      row.forEach((piece, c) => {
+        if (piece &&
+          !(animatingPiece && animatingPiece.toR === r && animatingPiece.toC === c) &&
+          !(capturedPiece && capturedPiece.r === r && capturedPiece.c === c)) {
+
+          const img = loadedImagesRef.current[`${piece.color}_${piece.type}`];
+          const x = hPadding + c * CELL_SIZE - CELL_SIZE / 2 + offset;
+          const y = vPadding + r * CELL_SIZE - CELL_SIZE / 2 + offset;
+
+          if (img) {
+            // Shadow
+            ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 4;
+
+            ctx.drawImage(img, x, y, PIECE_SIZE, PIECE_SIZE);
+
+            // Reset shadow
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+
+            // Highlight selection
+            if (isSelected(r, c)) {
+              ctx.beginPath();
+              ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
+              ctx.strokeStyle = '#fbbf24';
+              ctx.lineWidth = 4;
+              ctx.stroke();
+            }
+
+            // Highlight last move target
+            if (isLastMoveTo(r, c)) {
+              ctx.beginPath();
+              ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
+              ctx.strokeStyle = '#60a5fa';
+              ctx.lineWidth = 3;
+              ctx.stroke();
+            }
+          }
+        }
+      });
+    });
+
+    // Draw indicators for last move SOURCE
+    if (lastMove) {
+      const { from } = lastMove;
+      if (!board[from.r][from.c]) {
+        const x = hPadding + from.c * CELL_SIZE - CELL_SIZE / 2 + CELL_SIZE / 2;
+        const y = vPadding + from.r * CELL_SIZE - CELL_SIZE / 2 + CELL_SIZE / 2;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#60a5fa';
+        ctx.fill();
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = '#60a5fa';
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      }
+    }
+
+  }, [board, imagesLoaded, animatingPiece, capturedPiece, selectedPos, lastMove, boardWidth, boardHeight, hPadding, vPadding, cellSize]);
+
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+  const loadedImagesRef = useRef<Record<string, HTMLImageElement>>({});
+
+  // Preload images once
+  useEffect(() => {
+    const pieceTypes = ['KING', 'ADVISOR', 'ELEPHANT', 'HORSE', 'CHARIOT', 'CANNON', 'SOLDIER'];
+    const colors = ['RED', 'BLACK'];
+    const pieceFileMap: Record<string, Record<string, string>> = {
+      'RED': {
+        'KING': 'red_king_shuai.png',
+        'ADVISOR': 'red_advisor_shi.png',
+        'ELEPHANT': 'red_elephant_xiang.png',
+        'HORSE': 'red_horse_ma.png',
+        'CHARIOT': 'red_chariot_ju.png',
+        'CANNON': 'red_cannon_pao.png',
+        'SOLDIER': 'red_soldier_bing.png'
+      },
+      'BLACK': {
+        'KING': 'black_king_jiang.png',
+        'ADVISOR': 'black_advisor_shi.png',
+        'ELEPHANT': 'black_elephant_xiang.png',
+        'HORSE': 'black_horse_ma.png',
+        'CHARIOT': 'black_chariot_ju.png',
+        'CANNON': 'black_cannon_pao.png',
+        'SOLDIER': 'black_soldier_zu.png'
+      }
+    };
+
+    let loadedCount = 0;
+    const totalImages = 14;
+
+    colors.forEach(color => {
+      pieceTypes.forEach(type => {
+        const img = new Image();
+        img.src = `/pieces/${pieceFileMap[color][type]}`;
+        img.onload = () => {
+          loadedImagesRef.current[`${color}_${type}`] = img;
+          loadedCount++;
+          if (loadedCount === totalImages) {
+            setImagesLoaded(true);
+          }
+        };
+      });
+    });
+  }, []);
+
+  // Draw board when board changes or images loaded
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !imagesLoaded) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // High DPI Display Optimization
+    const dpr = window.devicePixelRatio || 1;
+
+    // Set actual size in memory if needed
+    if (canvas.width !== (boardWidth + hPadding * 2) * dpr) {
+      canvas.width = (boardWidth + hPadding * 2) * dpr;
+      canvas.height = (boardHeight + vPadding * 2) * dpr;
+    }
+
+    // Reset transform and set scale
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+
+    const CELL_SIZE = cellSize;
+    const PIECE_SIZE = CELL_SIZE * 0.82;
+    const offset = (CELL_SIZE - PIECE_SIZE) / 2;
+
+    board.forEach((row, r) => {
+      row.forEach((piece, c) => {
+        if (piece &&
+          !(animatingPiece && animatingPiece.toR === r && animatingPiece.toC === c) &&
+          !(capturedPiece && capturedPiece.r === r && capturedPiece.c === c)) {
+
+          const img = loadedImagesRef.current[`${piece.color}_${piece.type}`];
+          const x = hPadding + c * CELL_SIZE - CELL_SIZE / 2 + offset;
+          const y = vPadding + r * CELL_SIZE - CELL_SIZE / 2 + offset;
+
+          if (img) {
+            // Shadow
+            ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 4;
+
+            ctx.drawImage(img, x, y, PIECE_SIZE, PIECE_SIZE);
+
+            // Reset shadow
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+
+            // Highlight selection
+            if (isSelected(r, c)) {
+              ctx.beginPath();
+              ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
+              ctx.strokeStyle = '#fbbf24';
+              ctx.lineWidth = 4;
+              ctx.stroke();
+            }
+
+            // Highlight last move target
+            if (isLastMoveTo(r, c)) {
+              ctx.beginPath();
+              ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
+              ctx.strokeStyle = '#60a5fa';
+              ctx.lineWidth = 3;
+              ctx.stroke();
+            }
+          }
+        }
+      });
+    });
+
+    // Draw indicators for last move SOURCE
+    if (lastMove) {
+      const { from } = lastMove;
+      if (!board[from.r][from.c]) {
+        const x = hPadding + from.c * CELL_SIZE - CELL_SIZE / 2 + CELL_SIZE / 2;
+        const y = vPadding + from.r * CELL_SIZE - CELL_SIZE / 2 + CELL_SIZE / 2;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#60a5fa';
+        ctx.fill();
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = '#60a5fa';
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      }
+    }
+
+  }, [board, imagesLoaded, animatingPiece, capturedPiece, selectedPos, lastMove, boardWidth, boardHeight, hPadding, vPadding, cellSize]);
 
   // Detect when a new move happens and trigger animation
   useEffect(() => {
@@ -189,7 +474,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         />
       ))}
 
-      {/* Vùng sông (Chỉ hiển thị message nếu có, không vẽ lưới) */}
+      {/* VÃ¹ng sÃ´ng (Chá»‰ hiá»ƒn thá»‹ message náº¿u cÃ³, khÃ´ng váº½ lÆ°á»›i) */}
       <div
         style={{
           position: 'absolute',
@@ -224,13 +509,13 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
           </div>
         ) : (
           <div style={{ display: 'flex', gap: '40px', fontWeight: 900, fontSize: '18px', color: '#4a3520', fontFamily: "'Ma Shan Zheng', 'Noto Serif TC', 'STKaiti', 'KaiTi', serif" }}>
-            <span>楚 河</span>
-            <span>漢 界</span>
+            <span>æ¥š æ²³</span>
+            <span>æ¼¢ ç•Œ</span>
           </div>
         )}
       </div>
 
-      {/* Lớp hiển thị quân cờ tĩnh bằng Canvas (Tối ưu hiệu năng & Độ sắc nét) */}
+      {/* Lá»›p hiá»ƒn thá»‹ quÃ¢n cá» tÄ©nh báº±ng Canvas (Tá»‘i Æ°u hiá»‡u nÄƒng & Äá»™ sáº¯c nÃ©t) */}
       <canvas
         id="piece-layer"
         width={(boardWidth + hPadding * 2)}
@@ -242,104 +527,17 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
           pointerEvents: 'none',
           zIndex: 20
         }}
-        ref={(canvas) => {
-          if (!canvas) return;
-
-          // High DPI Display Optimization
-          const dpr = window.devicePixelRatio || 1;
-          const rect = canvas.getBoundingClientRect();
-
-          // Set actual size in memory (scaled to account for extra pixel density)
-          canvas.width = (boardWidth + hPadding * 2) * dpr;
-          canvas.height = (boardHeight + vPadding * 2) * dpr;
-
-          const ctx = canvas.getContext('2d');
-          if (!ctx) return;
-
-          // Normalize coordinate system to use css pixels
-          ctx.scale(dpr, dpr);
-
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-          const CELL_SIZE = cellSize;
-          const PIECE_SIZE = CELL_SIZE * 0.82; // Giảm nhẹ để vừa vặn hơn với ô cờ gỗ
-          const offset = (CELL_SIZE - PIECE_SIZE) / 2;
-
-          board.forEach((row, r) => {
-            row.forEach((piece, c) => {
-              // Chỉ vẽ những quân không trong trạng thái bị ăn hoặc đang di chuyển
-              if (piece &&
-                !(animatingPiece && animatingPiece.toR === r && animatingPiece.toC === c) &&
-                !(capturedPiece && capturedPiece.r === r && capturedPiece.c === c)) {
-
-                // Mapping chính xác tên file ảnh
-                const pieceFileMap: Record<string, Record<string, string>> = {
-                  'RED': {
-                    'KING': 'red_king_shuai.png',
-                    'ADVISOR': 'red_advisor_shi.png',
-                    'ELEPHANT': 'red_elephant_xiang.png',
-                    'HORSE': 'red_horse_ma.png',
-                    'CHARIOT': 'red_chariot_ju.png',
-                    'CANNON': 'red_cannon_pao.png',
-                    'SOLDIER': 'red_soldier_bing.png'
-                  },
-                  'BLACK': {
-                    'KING': 'black_king_jiang.png',
-                    'ADVISOR': 'black_advisor_shi.png',
-                    'ELEPHANT': 'black_elephant_xiang.png',
-                    'HORSE': 'black_horse_ma.png',
-                    'CHARIOT': 'black_chariot_ju.png',
-                    'CANNON': 'black_cannon_pao.png',
-                    'SOLDIER': 'black_soldier_zu.png'
-                  }
-                };
-
-                const img = new Image();
-                img.src = `/pieces/${pieceFileMap[piece.color][piece.type]}`;
-
-                const x = hPadding + c * CELL_SIZE - CELL_SIZE / 2 + offset;
-                const y = vPadding + r * CELL_SIZE - CELL_SIZE / 2 + offset;
-
-                // Render piece
-                if (img.complete) {
-                  ctx.drawImage(img, x, y, PIECE_SIZE, PIECE_SIZE);
-
-                  // Thêm hiệu ứng Highlight nếu là quân đang được chọn
-                  if (isSelected(r, c)) {
-                    ctx.beginPath();
-                    ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
-                    ctx.strokeStyle = '#fbbf24';
-                    ctx.lineWidth = 4;
-                    ctx.stroke();
-                  }
-
-                  // Hiệu ứng nước đi cuối
-                  if (isLastMoveTo(r, c)) {
-                    ctx.beginPath();
-                    ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
-                    ctx.strokeStyle = '#60a5fa';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                  }
-                } else {
-                  img.onload = () => {
-                    ctx.drawImage(img, x, y, PIECE_SIZE, PIECE_SIZE);
-                  };
-                }
-              }
-            });
-          });
-        }}
+        ref={canvasRef}
       />
 
-      {/* Lớp tương tác (Giữ nguyên cho sự kiện click) */}
+      {/* Lá»›p tÆ°Æ¡ng tÃ¡c (Giá»¯ nguyÃªn cho sá»± kiá»‡n click) */}
       <div style={{ position: 'absolute', left: hPadding, top: vPadding, display: 'grid', gridTemplateColumns: `repeat(${BOARD_COLS}, 0px)`, zIndex: 30 }}>
         {Array.from({ length: BOARD_ROWS }).map((_, r) => (
           Array.from({ length: BOARD_COLS }).map((_, c) => (
             <div key={`${r}-${c}`} style={{ position: 'absolute', left: c * cellSize - cellSize / 2, top: r * cellSize - cellSize / 2, width: cellSize, height: cellSize, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => onCellClick({ r, c })}>
               {isLegalTarget(r, c) && !board[r][c] && <div style={{ position: 'absolute', width: cellSize / 2, height: cellSize / 2, borderRadius: '50%', background: '#22c55e', border: '2px solid white', boxShadow: '0 0 10px #22c55e' }} />}
               {isLegalTarget(r, c) && board[r][c] && <div style={{ position: 'absolute', inset: 0, border: '4px solid #ef4444', borderRadius: '50%', animation: 'pulse 0.5s infinite' }} />}
-              {/* Quân cờ bị ăn (Explosion effect) */}
+              {/* QuÃ¢n cá» bá»‹ Äƒn (Explosion effect) */}
               {capturedPiece && capturedPiece.r === r && capturedPiece.c === c && (
                 <div style={{ position: 'absolute', inset: 0, animation: 'captureExplodeMega 0.3s forwards', zIndex: 50 }}>
                   <Piece piece={capturedPiece.piece} />
@@ -350,7 +548,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         ))}
       </div>
 
-      {/* Quân cờ đang di chuyển (Dùng DOM để animation mượt mà) */}
+      {/* QuÃ¢n cá» Ä‘ang di chuyá»ƒn (DÃ¹ng DOM Ä‘á»ƒ animation mÆ°á»£t mÃ ) */}
       {animatingPiece && (
         <div style={{ position: 'absolute', left: hPadding, top: vPadding, width: boardWidth, height: boardHeight, pointerEvents: 'none', zIndex: 100 }}>
           <div
