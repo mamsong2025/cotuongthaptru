@@ -8,31 +8,30 @@ interface PieceProps {
   isLastMove?: boolean;
 }
 
-// Unicode characters for Xiangqi pieces
-const PIECE_CHARS: Record<Color, Record<PT, string>> = {
+// Mapping từ piece type sang URL ảnh (Baked-in Image Assets)
+const PIECE_IMAGES: Record<Color, Record<PT, string>> = {
   [Color.RED]: {
-    [PT.KING]: '帥',
-    [PT.ADVISOR]: '仕',
-    [PT.ELEPHANT]: '相',
-    [PT.HORSE]: '傌',
-    [PT.CHARIOT]: '俥',
-    [PT.CANNON]: '炮',
-    [PT.SOLDIER]: '兵',
+    [PT.KING]: '/pieces/red_king_shuai.png',
+    [PT.ADVISOR]: '/pieces/red_advisor_shi.png',
+    [PT.ELEPHANT]: '/pieces/red_elephant_xiang.png',
+    [PT.HORSE]: '/pieces/red_horse_ma.png',
+    [PT.CHARIOT]: '/pieces/red_chariot_ju.png',
+    [PT.CANNON]: '/pieces/red_cannon_pao.png',
+    [PT.SOLDIER]: '/pieces/red_soldier_bing.png',
   },
   [Color.BLACK]: {
-    [PT.KING]: '將',
-    [PT.ADVISOR]: '士',
-    [PT.ELEPHANT]: '象',
-    [PT.HORSE]: '馬',
-    [PT.CHARIOT]: '車',
-    [PT.CANNON]: '砲',
-    [PT.SOLDIER]: '卒',
+    [PT.KING]: '/pieces/black_king_jiang.png',
+    [PT.ADVISOR]: '/pieces/black_advisor_shi.png',
+    [PT.ELEPHANT]: '/pieces/black_elephant_xiang.png',
+    [PT.HORSE]: '/pieces/black_horse_ma.png',
+    [PT.CHARIOT]: '/pieces/black_chariot_ju.png',
+    [PT.CANNON]: '/pieces/black_cannon_pao.png',
+    [PT.SOLDIER]: '/pieces/black_soldier_zu.png',
   },
 };
 
 const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
-  const isRed = piece.color === Color.RED;
-  const char = PIECE_CHARS[piece.color][piece.type];
+  const imageUrl = PIECE_IMAGES[piece.color][piece.type];
 
   return (
     <div
@@ -48,74 +47,33 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
         zIndex: isSelected ? 20 : 1,
       }}
     >
-      {/* Traditional Xiangqi piece with colored ring */}
+      {/* Container cho quân cờ với bóng đổ và highlight */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, #f5f0e8 0%, #ebe6de 100%)',
-          border: `4px solid ${isRed ? '#c41e3a' : '#2d5016'}`,
           boxShadow: isSelected
-            ? `0 0 0 3px #fbbf24, 0 4px 15px rgba(0,0,0,0.5)`
+            ? '0 0 0 3px #fbbf24, 0 8px 25px rgba(0,0,0,0.5)'
             : isLastMove
-              ? `0 0 0 2px #60a5fa, 0 3px 10px rgba(0,0,0,0.4)`
-              : '0 3px 8px rgba(0,0,0,0.3)',
-          overflow: 'hidden',
+              ? '0 0 0 2px #60a5fa, 0 4px 15px rgba(0,0,0,0.3)'
+              : '0 4px 10px rgba(0,0,0,0.2)',
+          transition: 'box-shadow 0.2s ease',
         }}
       >
-        {/* Inner ivory circle */}
-        <div
+        <img
+          src={imageUrl}
+          alt={`${piece.color} ${piece.type}`}
           style={{
-            position: 'absolute',
-            inset: '8px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #fdfaf0 0%, #f4f0e6 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            userSelect: 'none',
+            pointerEvents: 'none',
+            display: 'block',
           }}
-        >
-          {/* Character with ultra-comprehensive font stack */}
-          <span
-            style={{
-              fontSize: '28px',
-              fontFamily: `
-                "Noto Serif TC",
-                "Noto Sans TC", 
-                "Microsoft JhengHei",
-                "Microsoft YaHei",
-                "PingFang TC",
-                "PingFang SC",
-                "Heiti TC",
-                "STHeiti",
-                "SimHei",
-                "SimSun",
-                "MingLiU",
-                "PMingLiU",
-                "Apple LiGothic",
-                "Hiragino Sans GB",
-                "Hiragino Kaku Gothic Pro",
-                "WenQuanYi Micro Hei",
-                "WenQuanYi Zen Hei",
-                "AR PL UMing TW",
-                "AR PL UKai TW",
-                "Droid Sans Fallback",
-                sans-serif
-              `,
-              fontWeight: 900,
-              color: isRed ? '#8b0000' : '#1a4d2e',
-              textShadow: '0px 0px 1px rgba(0,0,0,0.3)',
-              userSelect: 'none',
-              lineHeight: 1,
-              WebkitFontSmoothing: 'antialiased',
-              MozOsxFontSmoothing: 'grayscale',
-              textRendering: 'optimizeLegibility',
-            }}
-          >
-            {char}
-          </span>
-        </div>
+          draggable={false}
+        />
       </div>
     </div>
   );
