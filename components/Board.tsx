@@ -47,14 +47,14 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
   const boardWidth = cellSize * (BOARD_COLS - 1);
   const boardHeight = cellSize * (BOARD_ROWS - 1);
 
-  // DUY NHẤT 1 BÀN CỜ ROYAL (Hình vuông, cao cấp)
-  const vPadding = cellSize * 1.05;
+  // DUY NHẤT 1 BÀN CỜ (Hình vuông, cao cấp)
+  const vPadding = cellSize * 0.75;
   const hPadding = vPadding + (cellSize / 2);
 
   const currentTheme = {
     bg: 'url("/board_royal.jpg")',
-    border: '#8b6914',
-    shadow: '0 25px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(212,175,55,0.15)',
+    border: '#4a3520',
+    shadow: '0 25px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.2)',
     hideBorder: true
   };
 
