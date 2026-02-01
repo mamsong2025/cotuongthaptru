@@ -220,7 +220,9 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
               boxShadow: '0 4px 0 #000',
             }}
           >
-            {riverMessage.text}
+            {/* EMOTES STICKER */}
+            <img src="/emotes.png" alt="Emotes" className="w-16 h-auto mx-auto mb-1 animate-bounce" />
+            <div>{riverMessage.text}</div>
           </div>
         ) : (
           <div style={{ display: 'flex', gap: '40px', fontWeight: 900, fontSize: '18px', color: '#4a3520', fontFamily: "'Ma Shan Zheng', 'Noto Serif TC', 'STKaiti', 'KaiTi', serif" }}>
