@@ -595,11 +595,11 @@ const App: React.FC = () => {
             className="absolute -top-12 -right-12 w-48 h-auto pointer-events-none z-20 opacity-90 drop-shadow-lg"
           />
 
-          {/* BAMBOO DECORATION - INSIDE LEFT */}
+          {/* BAMBOO DECORATION - INSIDE LEFT FULL HEIGHT */}
           <img
             src="/bamboo_ink.png"
             alt="Trúc mực"
-            className="absolute bottom-0 left-[-10px] w-24 h-auto pointer-events-none z-0 opacity-15 mix-blend-multiply"
+            className="absolute top-0 bottom-0 left-[-20px] h-full w-auto object-cover pointer-events-none z-0 opacity-10 mix-blend-multiply"
           />
 
           {/* LOGO */}
