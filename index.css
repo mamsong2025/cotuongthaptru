@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background: #1a1a1a;
+    color: #eee;
+    margin: 0;
+    overflow-x: hidden;
+}
+
+.chinese-font {
+    font-family: 'Noto Serif TC', serif;
+}
+
+.board-container {
+    aspect-ratio: 9 / 10;
+}

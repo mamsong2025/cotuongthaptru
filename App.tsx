@@ -47,13 +47,13 @@ const AI_PERSONALITIES: Record<string, AIPersonality> = {
   },
   master: {
     name: 'Sư Phụ',
-    depth: 5, // Giảm từ 9
+    depth: 4, // Giảm thêm để chạy mượt trên mobile
     description: 'Bậc thầy cờ tướng',
     emoji: '🧙',
   },
   demon: {
     name: 'Vua Cờ',
-    depth: 6, // Giảm từ 12 -> Mức này đủ khó mà không lag
+    depth: 5, // Giảm từ 6 -> Tránh lag cực nặng
     description: 'Siêu cao thủ',
     emoji: '🤖',
   },
@@ -65,13 +65,13 @@ const AI_PERSONALITIES: Record<string, AIPersonality> = {
   },
   aggressive: {
     name: 'Nữ Mạnh Mẽ',
-    depth: 6,
+    depth: 5,
     description: 'Chủ động, tấn công',
     emoji: '🔥',
   },
   smart: {
     name: 'Nữ Thông Minh',
-    depth: 7,
+    depth: 5,
     description: 'Mưu lược, chiến thuật',
     emoji: '🧠',
   },
@@ -108,6 +108,16 @@ const App: React.FC = () => {
   const bgmAudioRef = useRef<HTMLAudioElement | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const talkOverlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const engineWorkerRef = useRef<Worker | null>(null);
+
+  // Initialize Worker
+  useEffect(() => {
+    engineWorkerRef.current = new Worker(new URL('./engine.worker.ts', import.meta.url), { type: 'module' });
+
+    return () => {
+      engineWorkerRef.current?.terminate();
+    };
+  }, []);
 
   const currentAI = AI_PERSONALITIES[aiKey];
 
@@ -227,90 +237,86 @@ const App: React.FC = () => {
   }, [aiKey]);
 
   const triggerAiMove = useCallback(async (currentBoard: BoardType) => {
-    if (isAiThinking || gameOver) return;
+    if (isAiThinking || gameOver || !engineWorkerRef.current) return;
 
     setIsAiThinking(true);
     // Reset idle timer khi AI đang suy nghĩ
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
 
-    setTimeout(async () => {
-      const bestMove = findBestMove(currentBoard, currentAI.depth, true);
+    // Sử dụng Web Worker để tính toán nước đi
+    engineWorkerRef.current.onmessage = async (e: MessageEvent) => {
+      const { type, move: bestMove } = e.data;
 
-      if (bestMove) {
-        const newBoard = currentBoard.map(row => [...row]);
-        const piece = newBoard[bestMove.from.r][bestMove.from.c];
-        const captured = newBoard[bestMove.to.r][bestMove.to.c];
+      if (type === 'bestMove') {
+        if (bestMove) {
+          const newBoard = currentBoard.map(row => [...row]);
+          const piece = newBoard[bestMove.from.r][bestMove.from.c];
+          const captured = newBoard[bestMove.to.r][bestMove.to.c];
 
-        newBoard[bestMove.to.r][bestMove.to.c] = piece;
-        newBoard[bestMove.from.r][bestMove.from.c] = null;
+          newBoard[bestMove.to.r][bestMove.to.c] = piece;
+          newBoard[bestMove.from.r][bestMove.from.c] = null;
 
-        setBoard(newBoard);
-        setLastMove(bestMove);
-        setTurn(Color.RED);
-        setIsAiThinking(false);
+          setBoard(newBoard);
+          setLastMove(bestMove);
+          setTurn(Color.RED);
+          setIsAiThinking(false);
 
-        playSfx(captured ? SOUNDS.CAPTURE : SOUNDS.MOVE);
+          playSfx(captured ? SOUNDS.CAPTURE : SOUNDS.MOVE);
 
-        if (captured?.type === PieceType.KING) {
-          setGameOver(`${currentAI.name} THẮNG! Ngươi thua rồi!`);
-          playSfx(SOUNDS.LOSS);
-          return;
-        }
-
-        // Thoại AI - chửi ngay khi ăn quân, chiếu tướng, hoặc giăng bẫy
-        const pieceNames: Record<PieceType, string> = {
-          [PieceType.KING]: 'Tướng',
-          [PieceType.ADVISOR]: 'Sĩ',
-          [PieceType.ELEPHANT]: 'Tượng',
-          [PieceType.HORSE]: 'Mã',
-          [PieceType.CHARIOT]: 'Xe',
-          [PieceType.CANNON]: 'Pháo',
-          [PieceType.SOLDIER]: 'Tốt',
-        };
-
-        const isCheck = isInCheck(newBoard, Color.RED);
-        const isCapture = !!captured;
-
-        let context = "";
-        let mode: 'sweet' | 'toxic' = 'toxic'; // Mac dinh la chui
-
-        if (isCheck) {
-          context = "AI VỪA CHIẾU TƯỚNG! HÃY CHỬI MẠNH VÀO! DỌA NẠT ĐỐI THỦ!";
-          if (isCapture) {
-            context += ` Kèm theo việc ăn mất quân ${pieceNames[captured.type].toUpperCase()} của nó! TIN VUI KÉP!`;
+          if (captured?.type === PieceType.KING) {
+            setGameOver(`${currentAI.name} THẮNG! Ngươi thua rồi!`);
+            playSfx(SOUNDS.LOSS);
+            return;
           }
-        } else if (isCapture) {
-          context = `AI VỪA ĂN ĐƯỢC QUÂN ${pieceNames[captured.type].toUpperCase()}! CHỬI NGU! CHÊ BAI KỸ NĂNG!`;
-          // Nếu ăn Xe hoặc Pháo -> Chửi thậm tệ hơn
-          if (captured.type === PieceType.CHARIOT || captured.type === PieceType.CANNON) {
-            context += " ĐÂY LÀ QUÂN CHỦ LỰC. HÃY CƯỜI KHINH BỈ!";
+
+          const pieceNames: Record<PieceType, string> = {
+            [PieceType.KING]: 'Tướng',
+            [PieceType.ADVISOR]: 'Sĩ',
+            [PieceType.ELEPHANT]: 'Tượng',
+            [PieceType.HORSE]: 'Mã',
+            [PieceType.CHARIOT]: 'Xe',
+            [PieceType.CANNON]: 'Pháo',
+            [PieceType.SOLDIER]: 'Tốt',
+          };
+
+          const isCheck = isInCheck(newBoard, Color.RED);
+          const isCapture = !!captured;
+
+          let context = "";
+          let mode: 'sweet' | 'toxic' = 'toxic';
+
+          if (isCheck) {
+            context = "AI VỪA CHIẾU TƯỚNG! HÃY CHỬI MẠNH VÀO! DỌA NẠT ĐỐI THỦ!";
+            if (isCapture) context += ` Kèm theo việc ăn mất quân ${pieceNames[captured.type].toUpperCase()} của nó!`;
+          } else if (isCapture) {
+            context = `AI VỪA ĂN ĐƯỢC QUÂN ${pieceNames[captured.type].toUpperCase()}! CHỬI NGU! CHÊ BAI KỸ NĂNG!`;
+          } else {
+            context = "AI vừa đi một nước thâm độc, đang giăng bẫy dụ địch.";
           }
+
+          try {
+            const talk = await getStrategicTalk(mode, context);
+            await triggerTalk(talk, mode);
+          } catch (error) {
+            await triggerTalk("Haha! Ta đã tính trước nước này rồi!", mode);
+          }
+
+          startIdleTimer();
         } else {
-          // Nước đi thường -> Giả định là giăng bẫy/dụ địch (vì AI đã tính toán best move)
-          context = "AI vừa đi một nước thâm độc, đang giăng bẫy dụ địch. Hãy nói kiểu bí hiểm, đe dọa, hoặc dụ dỗ nó đi vào chỗ chết.";
+          setGameOver("Ngươi thắng?! Chắc ta nương tay thôi!");
+          playSfx(SOUNDS.WIN);
+          setIsAiThinking(false);
         }
-
-        // Khi ăn quân: chửi ngay lập tức, không delay
-        console.log('[DEBUG] Getting strategic talk, context:', context);
-        try {
-          const talk = await getStrategicTalk(mode, context);
-          console.log('[DEBUG] Strategic talk:', talk);
-          await triggerTalk(talk, mode);
-        } catch (error) {
-          console.error('[DEBUG] Strategic talk error:', error);
-          // Fallback message
-          await triggerTalk("Haha! Ta đã tính trước nước này rồi!", mode);
-        }
-
-        // Restart idle timer sau khi AI đi xong
-        startIdleTimer();
-      } else {
-        setGameOver("Ngươi thắng?! Chắc ta nương tay thôi!");
-        playSfx(SOUNDS.WIN);
-        setIsAiThinking(false);
       }
-    }, 50);
-  }, [isMuted, currentAI, showChat, startIdleTimer]);
+    };
+
+    engineWorkerRef.current.postMessage({
+      type: 'findBestMove',
+      board: currentBoard,
+      depth: currentAI.depth,
+      isMaximizing: true
+    });
+  }, [isMuted, currentAI, showChat, startIdleTimer, gameOver, isAiThinking]);
 
   const handleCellClick = async (pos: Position) => {
     if (gameOver || isAiThinking || turn !== Color.RED) return;
