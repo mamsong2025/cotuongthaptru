@@ -483,29 +483,26 @@ const App: React.FC = () => {
     // Sub-menu: Chọn đối thủ AI
     if (menuPage === 'selectAI') {
       return (
-        <div className="min-h-screen text-white flex flex-col items-center justify-center p-4 font-serif relative overflow-hidden"
-          style={{ background: 'linear-gradient(180deg, #2d1810 0%, #1a0f0a 50%, #0d0705 100%)' }}
+        <div className="min-h-screen flex items-center justify-center p-4 font-serif relative overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #efe3c6 0%, #d9c59a 100%)' }}
         >
-          {/* Wood Texture Background */}
-          <div className="absolute inset-0 opacity-30 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] z-0 pointer-events-none" />
-
           {/* Back Button */}
           <button
             onClick={() => setMenuPage('main')}
-            className="absolute top-4 left-4 z-20 bg-[#5c3a21]/80 hover:bg-[#5c3a21] text-[#f5d0a9] px-4 py-2 rounded-full border border-[#d4af37] text-sm transition-all"
+            className="absolute top-4 left-4 z-20 bg-white/50 hover:bg-white/80 text-[#2f4f3a] px-5 py-2 rounded-full border border-[#2f4f3a]/20 text-sm font-bold transition-all shadow-sm"
           >
-            ← Quay lại
+            ← Trang chủ
           </button>
 
           {/* Container */}
-          <div className="relative w-full max-w-sm z-10 p-6">
+          <div className="relative w-full max-w-sm z-10 p-8 rounded-3xl shadow-xl" style={{ background: '#f7efd8' }}>
             {/* Title */}
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-[#d4af37] uppercase tracking-wider">Chọn Đối Thủ</h2>
-              <p className="text-gray-400 text-xs mt-1">Chọn mức độ thử thách</p>
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-black uppercase tracking-widest" style={{ color: '#2f4f3a' }}>Chọn Đối Thủ</h2>
+              <div className="w-12 h-1 bg-[#2f4f3a]/10 mx-auto mt-2 rounded-full" />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
               {[
                 { id: 'baby', title: 'Novice', sub: 'Mới tập chơi', label: '初學者' },
                 { id: 'student', title: 'Apprentice', sub: 'Đang học nghề', label: '學徒' },
@@ -519,23 +516,24 @@ const App: React.FC = () => {
               ].map((item, idx) => (
                 <button
                   key={item.id}
-                  onClick={() => { setMenuPage('main'); handleSelectAI(item.id); }}
-                  className="w-full relative group overflow-hidden rounded-full py-3 px-5 border-2 border-[#8b6914] transition-all duration-300 hover:scale-105 hover:border-[#d4af37]"
+                  onClick={() => { playSfx(SOUNDS.MOVE); setMenuPage('main'); handleSelectAI(item.id); }}
+                  className="w-full relative group overflow-hidden rounded-2xl py-4 px-5 border border-[#2f4f3a]/10 transition-all duration-300 hover:scale-[1.02] hover:shadow-md"
                   style={{
-                    background: `linear-gradient(135deg, #5c3a21 0%, #3d2815 100%)`,
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)'
+                    background: '#e8d9b0',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
                   }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                   <div className="flex items-center justify-between relative z-10">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">{['📜', '⛑️', '🧘‍♀️', '🔥', '🧠', '😏', '🛡️', '⚔️', '👹'][idx]}</span>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-white/40 flex items-center justify-center text-xl shadow-inner">
+                        {['📜', '⛑️', '🧘‍♀️', '🔥', '🧠', '😏', '🛡️', '⚔️', '👹'][idx]}
+                      </div>
                       <div className="text-left">
-                        <div className="font-bold text-[#f5d0a9] tracking-wide">{item.title}</div>
-                        <div className="text-[10px] text-gray-400">{item.sub}</div>
+                        <div className="font-bold tracking-wide" style={{ color: '#2f4f3a' }}>{item.title}</div>
+                        <div className="text-[10px] uppercase font-bold opacity-40 ml-[1px]" style={{ color: '#2f4f3a' }}>{item.sub}</div>
                       </div>
                     </div>
-                    <span className="text-[#d4af37] text-lg font-serif">{item.label}</span>
+                    <span className="text-xl font-black opacity-20" style={{ color: '#2f4f3a', fontFamily: "'Ma Shan Zheng', serif" }}>{item.label}</span>
                   </div>
                 </button>
               ))}
@@ -545,152 +543,77 @@ const App: React.FC = () => {
       );
     }
 
-    // Main Menu - theo mẫu hình ảnh
+    // Main Menu - Cờ Tướng 01213
     return (
-      <div className="min-h-screen text-white flex flex-col items-center justify-between p-4 font-serif relative overflow-hidden"
-        style={{ background: 'linear-gradient(180deg, #2d1810 0%, #1a0f0a 50%, #0d0705 100%)' }}
-      >
-        {/* Wood Texture Background */}
-        <div className="absolute inset-0 opacity-30 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] z-0 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-black/60 z-0 pointer-events-none" />
+      <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #efe3c6 0%, #d9c59a 100%)' }}>
 
-        {/* Decorative Chess Pieces */}
-        <div className="absolute top-10 left-4 text-6xl opacity-20 rotate-[-15deg] z-0">將</div>
-        <div className="absolute top-20 right-4 text-5xl opacity-15 rotate-[15deg] z-0">帥</div>
-        <div className="absolute bottom-32 left-6 text-4xl opacity-10 rotate-[-10deg] z-0">馬</div>
-        <div className="absolute bottom-40 right-8 text-4xl opacity-10 rotate-[20deg] z-0">炮</div>
+        {/* Subtle Decorative Elements */}
+        <div className="absolute top-[-10%] left-[-10%] w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-80 h-80 rounded-full bg-green-900/5 blur-3xl pointer-events-none" />
 
-        {/* Top Section - Logo */}
-        <div className="relative z-10 flex flex-col items-center mt-8">
-          {/* Chess Piece Icon */}
-          <div
-            className="w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-2xl"
-            style={{
-              background: 'linear-gradient(145deg, #f5d0a9 0%, #c9a66b 50%, #8b6914 100%)',
-              border: '4px solid #5c3a21',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.3)'
-            }}
-          >
-            <span className="text-5xl text-[#8b0000] font-black" style={{ fontFamily: "'Ma Shan Zheng', 'Noto Serif TC', serif" }}>將</span>
+        <div className="w-full max-w-sm rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-8 text-center relative z-10"
+          style={{ background: '#f7efd8', border: '1px solid rgba(255,255,255,0.5)' }}>
+
+          {/* LOGO */}
+          <div className="mb-6 group">
+            <div className="mx-auto w-20 h-20 rounded-full flex items-center justify-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.05)] transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110"
+              style={{ background: '#e8d9b0' }}>
+              <span className="text-4xl font-black" style={{ color: '#2f4f3a', fontFamily: "'Ma Shan Zheng', serif" }}>將</span>
+            </div>
           </div>
 
-          {/* Logo Text - "Cờ Tướng" (Replaced with Image) */}
-          <div className="flex flex-col items-center">
+          {/* TITLE & LOGO IMAGE */}
+          <div className="flex flex-col items-center mb-2">
             <img
               src="/logo_co_tuong.png"
-              alt="Cờ Tướng"
-              className="h-32 md:h-40 object-contain drop-shadow-[0_5px_15px_rgba(212,175,55,0.3)]"
+              alt="Cờ Tướng 01213"
+              className="h-28 object-contain drop-shadow-md"
             />
-            <p className="text-[#8b6914] text-xs mt-[-10px] tracking-[0.3em] font-bold uppercase z-10">Thập Trụ • Xiangqi Master</p>
+            <h1 className="text-3xl font-bold tracking-tight mt-[-15px]"
+              style={{ color: '#2f4f3a', fontFamily: 'Georgia, serif' }}>Cờ Tướng 01213</h1>
+            <p className="text-sm italic mt-1 font-medium"
+              style={{ color: '#5c6f63', fontFamily: 'Georgia, serif' }}>kính tặng lão pa</p>
           </div>
-        </div>
 
-        {/* Center Section - Menu Buttons */}
-        <div className="relative z-10 w-full max-w-xs space-y-4 my-8">
-          {/* Chơi Với Máy */}
-          <button
-            onClick={() => setMenuPage('selectAI')}
-            className="w-full relative group overflow-hidden rounded-full py-4 px-6 transition-all duration-300 hover:scale-105"
-            style={{
-              background: 'linear-gradient(135deg, #5c3a21 0%, #8b5a2b 50%, #5c3a21 100%)',
-              border: '3px solid #8b6914',
-              boxShadow: '0 6px 20px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.15), inset 0 -2px 4px rgba(0,0,0,0.2)'
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-            <div className="flex items-center justify-center gap-3 relative z-10">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(145deg, #f5d0a9, #c9a66b)',
-                  border: '2px solid #5c3a21'
-                }}
-              >
-                <span className="text-[#8b0000] text-sm font-bold">將</span>
-              </div>
-              <span className="text-[#f5d0a9] font-bold text-lg tracking-wide">Chơi Với Máy</span>
-            </div>
-          </button>
+          {/* STATS BAR */}
+          <div className="flex justify-around text-[10px] font-bold uppercase tracking-widest mt-6 mb-8 py-2 border-y border-[#2f4f3a]/5"
+            style={{ color: '#4a5f54' }}>
+            <div className="flex items-center gap-1">👤 1 Người</div>
+            <div className="flex items-center gap-1">🤖 AI</div>
+            <div className="flex items-center gap-1">⚔️ Online</div>
+          </div>
 
-          {/* Hai Người Chơi */}
-          <button
-            onClick={() => alert('Tính năng đang phát triển!')}
-            className="w-full relative group overflow-hidden rounded-full py-4 px-6 transition-all duration-300 hover:scale-105"
-            style={{
-              background: 'linear-gradient(135deg, #5c3a21 0%, #8b5a2b 50%, #5c3a21 100%)',
-              border: '3px solid #8b6914',
-              boxShadow: '0 6px 20px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.15), inset 0 -2px 4px rgba(0,0,0,0.2)'
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-            <div className="flex items-center justify-center gap-3 relative z-10">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(145deg, #f5d0a9, #c9a66b)',
-                  border: '2px solid #5c3a21'
-                }}
-              >
-                <span className="text-[#8b0000] text-sm font-bold">帥</span>
-              </div>
-              <span className="text-[#f5d0a9] font-bold text-lg tracking-wide">Hai Người Chơi</span>
-            </div>
-          </button>
-
-          {/* Xếp Quân */}
-          <button
-            onClick={() => alert('Tính năng đang phát triển!')}
-            className="w-full relative group overflow-hidden rounded-full py-4 px-6 transition-all duration-300 hover:scale-105"
-            style={{
-              background: 'linear-gradient(135deg, #5c3a21 0%, #8b5a2b 50%, #5c3a21 100%)',
-              border: '3px solid #8b6914',
-              boxShadow: '0 6px 20px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.15), inset 0 -2px 4px rgba(0,0,0,0.2)'
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-            <div className="flex items-center justify-center gap-3 relative z-10">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(145deg, #f5d0a9, #c9a66b)',
-                  border: '2px solid #5c3a21'
-                }}
-              >
-                <span className="text-[#8b0000] text-sm font-bold">車</span>
-              </div>
-              <span className="text-[#f5d0a9] font-bold text-lg tracking-wide">Xếp Quân</span>
-            </div>
-          </button>
-        </div>
-
-        {/* Bottom Section - Footer Icons */}
-        <div className="relative z-10 w-full max-w-sm mb-6">
-          <div className="flex justify-around items-center py-3 px-4 rounded-xl"
-            style={{
-              background: 'rgba(0,0,0,0.3)',
-              backdropFilter: 'blur(10px)'
-            }}
-          >
-            <button className="flex flex-col items-center gap-1 opacity-70 hover:opacity-100 transition-opacity">
-              <div className="w-10 h-10 rounded-full bg-[#3b5998] flex items-center justify-center">
-                <span className="text-white text-lg">f</span>
-              </div>
-              <span className="text-[10px] text-gray-400">Fanpage</span>
+          {/* MENU BUTTONS */}
+          <div className="space-y-4">
+            <button
+              onClick={() => { playSfx(SOUNDS.MOVE); setMenuPage('selectAI'); }}
+              className="w-full py-4 rounded-2xl text-lg font-bold shadow-lg transform transition-all active:scale-95 hover:translate-y-[-2px] hover:shadow-xl"
+              style={{ background: 'linear-gradient(to bottom, #9ec4a8, #6e9c84)', color: '#ffffff' }}
+            >
+              Chơi nhanh
             </button>
 
-            <button className="flex flex-col items-center gap-1 opacity-70 hover:opacity-100 transition-opacity">
-              <div className="w-10 h-10 rounded-full bg-[#e91e63] flex items-center justify-center">
-                <span className="text-white text-lg">♥</span>
-              </div>
-              <span className="text-[10px] text-gray-400">Yêu Thích</span>
+            <button
+              onClick={() => { playSfx(SOUNDS.MOVE); alert('Tính năng Chơi với bạn đang được phát triển!'); }}
+              className="w-full py-4 rounded-2xl text-lg font-bold shadow-lg transform transition-all active:scale-95 hover:translate-y-[-2px] hover:shadow-xl"
+              style={{ background: 'linear-gradient(to bottom, #f4d27a, #e3b74e)', color: '#4b3b12' }}
+            >
+              Chơi với bạn
             </button>
 
-            <button className="flex flex-col items-center gap-1 opacity-70 hover:opacity-100 transition-opacity">
-              <div className="w-10 h-10 rounded-full bg-[#5c3a21] flex items-center justify-center border border-[#8b6914]">
-                <span className="text-[#f5d0a9] text-lg">🎮</span>
-              </div>
-              <span className="text-[10px] text-gray-400">Games Khác</span>
+            <button
+              onClick={() => { playSfx(SOUNDS.MOVE); alert('Cài đặt sẽ sớm ra mắt!'); }}
+              className="w-full py-4 rounded-2xl text-lg font-bold transition-all active:scale-95 hover:bg-[#dfd0af]"
+              style={{ background: '#e6dbc2', color: '#2f4f3a' }}
+            >
+              Cài đặt
             </button>
+          </div>
+
+          {/* FOOTER */}
+          <div className="mt-8 text-[10px] font-bold opacity-30 uppercase tracking-[0.2em]" style={{ color: '#6b6b6b' }}>
+            © 2026 • Cờ Tướng 01213
           </div>
         </div>
       </div>
@@ -699,24 +622,24 @@ const App: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen text-white flex flex-col items-center justify-between py-4 px-2 font-sans overflow-hidden"
+      className="min-h-screen flex flex-col items-center justify-between py-4 px-2 font-sans overflow-hidden"
       style={{
-        background: '#0f0f23', // Đơn giản hóa background để chạy nhanh
+        background: 'linear-gradient(135deg, #efe3c6 0%, #d9c59a 100%)',
       }}
     >
       {/* Header với tên AI tinh gọn */}
       <header className="mb-2 text-center z-20">
         <h1
-          className="text-2xl md:text-4xl font-black uppercase flex items-center justify-center gap-2"
+          className="text-2xl md:text-3xl font-black uppercase flex items-center justify-center gap-2"
           style={{
-            color: '#d4af37', // Dùng màu cố định cho hiệu năng
-            textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+            color: '#2f4f3a',
+            textShadow: '0 1px 2px rgba(255,255,255,0.5)',
           }}
         >
           <span>{currentAI.emoji}</span>
           <span>{currentAI.name}</span>
         </h1>
-        <p className="text-[#a0a0c0] text-[10px] uppercase font-bold tracking-widest mt-1">
+        <p className="text-[#5c6f63] text-[10px] uppercase font-bold tracking-widest mt-1">
           {turn === Color.RED ? '⚔️ Lượt của bạn' : '🧠 AI đang tính...'}
         </p>
 
