@@ -33,11 +33,6 @@ const PIECE_IMAGES: Record<Color, Record<PT, string>> = {
 const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
   const imageUrl = PIECE_IMAGES[piece.color][piece.type];
 
-  // Đồng bộ màu sắc cho các quân cờ khác nguồn (vừa ấm vừa sắc nét)
-  const filterStyle = {
-    filter: `sepia(0.15) saturate(1.1) brightness(1.05) contrast(1.05)`,
-  };
-
   return (
     <div
       style={{
@@ -76,7 +71,6 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
             userSelect: 'none',
             pointerEvents: 'none',
             display: 'block',
-            ...filterStyle
           }}
           draggable={false}
         />
@@ -85,7 +79,7 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
         <div style={{
           position: 'absolute',
           inset: '10%',
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%)',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 50%)',
           borderRadius: '50%',
           pointerEvents: 'none'
         }} />

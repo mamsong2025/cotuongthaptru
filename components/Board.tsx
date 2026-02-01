@@ -283,21 +283,35 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
                 !(animatingPiece && animatingPiece.toR === r && animatingPiece.toC === c) &&
                 !(capturedPiece && capturedPiece.r === r && capturedPiece.c === c)) {
 
-                const img = new Image();
-                img.src = `/pieces/${piece.color === Color.RED ? 'red' : 'black'}_${piece.type.toLowerCase()}_${piece.type === 'KING' ? (piece.color === Color.RED ? 'shuai' : 'jiang') :
-                  piece.type === 'ADVISOR' ? 'shi' :
-                    piece.type === 'ELEPHANT' ? (piece.color === Color.RED ? 'xiang' : 'xiang') :
-                      piece.type === 'HORSE' ? 'ma' :
-                        piece.type === 'CHARIOT' ? 'ju' :
-                          piece.type === 'CANNON' ? 'pao' : 'bing'
-                  }.png`;
+                // Mapping chính xác tên file ảnh
+                const pieceFileMap: Record<string, Record<string, string>> = {
+                  'RED': {
+                    'KING': 'red_king_shuai.png',
+                    'ADVISOR': 'red_advisor_shi.png',
+                    'ELEPHANT': 'red_elephant_xiang.png',
+                    'HORSE': 'red_horse_ma.png',
+                    'CHARIOT': 'red_chariot_ju.png',
+                    'CANNON': 'red_cannon_pao.png',
+                    'SOLDIER': 'red_soldier_bing.png'
+                  },
+                  'BLACK': {
+                    'KING': 'black_king_jiang.png',
+                    'ADVISOR': 'black_advisor_shi.png',
+                    'ELEPHANT': 'black_elephant_xiang.png',
+                    'HORSE': 'black_horse_ma.png',
+                    'CHARIOT': 'black_chariot_ju.png',
+                    'CANNON': 'black_cannon_pao.png',
+                    'SOLDIER': 'black_soldier_zu.png'
+                  }
+                };
 
-                // Lưu ý: Trong thực tế nên preload ảnh, ở đây ta render trực tiếp
-                // Nếu ảnh chưa load, nó sẽ không hiện ngay, nhưng React sẽ re-render khi board thay đổi
+                const img = new Image();
+                img.src = `/pieces/${pieceFileMap[piece.color][piece.type]}`;
+
                 const x = padding + c * CELL_SIZE - CELL_SIZE / 2 + offset;
                 const y = padding + r * CELL_SIZE - CELL_SIZE / 2 + offset;
 
-                // Đồng bộ logic: ctx.drawImage(piece, x, y, PIECE_SIZE, PIECE_SIZE)
+                // Render piece
                 if (img.complete) {
                   ctx.drawImage(img, x, y, PIECE_SIZE, PIECE_SIZE);
 
