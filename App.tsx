@@ -849,47 +849,59 @@ const App: React.FC = () => {
           box-shadow: none;
         }
         
-        /* Floating Buttons Container */
-        .controls-container {
+        
+        /* Floating Groups */
+        .floating-group-left {
           position: absolute;
-          top: 20px;
-          right: 20px;
+          top: 16px;
+          left: 16px;
           display: flex;
           gap: 12px;
           z-index: 100;
         }
 
-        .undo-btn {
-          background: linear-gradient(135deg, #fbbf24, #d97706);
-          color: #fff;
-          border: none;
+        .floating-group-right {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          z-index: 100;
+        }
+
+        .float-btn {
           width: 44px;
           height: 44px;
           border-radius: 50%;
+          border: 2px solid rgba(255,255,255,0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
           font-size: 20px;
           cursor: pointer;
           box-shadow: 0 4px 10px rgba(0,0,0,0.3);
           transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: bold;
-          border: 2px solid rgba(255,255,255,0.2);
+          color: white;
+        }
+
+        .float-btn:active {
+          transform: scale(0.95);
+        }
+
+        .btn-sound {
+           background: rgba(0,0,0,0.6);
+        }
+
+        .btn-undo {
+          background: linear-gradient(135deg, #fbbf24, #d97706);
         }
         
-        .undo-btn:disabled {
+        .btn-undo:disabled {
           background: #666;
           opacity: 0.6;
           cursor: not-allowed;
-          box-shadow: none;
         }
 
-        .undo-btn:active:not(:disabled) {
-          transform: scale(0.95);
-        }
-        
         .menu-btn {
-          position: static; /* Reset static because it is now flex item */
+          position: static;
           margin: 0;
         }
 
@@ -923,23 +935,37 @@ const App: React.FC = () => {
 
       {/* Floating Controls */}
       {!gameOver && (
-        <div className="controls-container">
-          {/* Undo Button */}
-          <button
-            className="undo-btn"
-            onClick={() => { if (undoCount > 0) undoMove(); }}
-            disabled={undoCount <= 0 || history.length === 0}
-            title={`Hồi cờ (${undoCount})`}
-          >
-            ↺
-            <span style={{ position: 'absolute', bottom: '-2px', right: '-2px', fontSize: '10px', background: 'red', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{undoCount}</span>
-          </button>
+        <>
+          {/* Left Group: Sound + Undo */}
+          <div className="floating-group-left">
+            {/* Sound Toggle */}
+            <button
+              className="float-btn btn-sound"
+              onClick={() => setIsMuted(!isMuted)}
+              title="Bật/Tắt âm thanh"
+            >
+              {isMuted ? '🔇' : '🔊'}
+            </button>
 
-          {/* Menu Button */}
-          <button className="menu-btn" onClick={() => { playSfx(SOUNDS.MOVE); setShowInGameMenu(true); }}>
-            ☰
-          </button>
-        </div>
+            {/* Undo Button */}
+            <button
+              className="float-btn btn-undo"
+              onClick={() => { if (undoCount > 0) undoMove(); }}
+              disabled={undoCount <= 0 || history.length === 0}
+              title={`Hồi cờ (${undoCount})`}
+            >
+              ↺
+              <span style={{ position: 'absolute', bottom: '-2px', right: '-2px', fontSize: '10px', background: 'red', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{undoCount}</span>
+            </button>
+          </div>
+
+          {/* Right Group: Menu */}
+          <div className="floating-group-right">
+            <button className="menu-btn" onClick={() => { playSfx(SOUNDS.MOVE); setShowInGameMenu(true); }}>
+              ☰
+            </button>
+          </div>
+        </>
       )}
 
       {/* In-Game Menu Overlay */}
