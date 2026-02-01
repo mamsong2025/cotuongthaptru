@@ -587,6 +587,13 @@ const App: React.FC = () => {
         <div className="w-full max-w-sm rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-8 text-center relative z-10"
           style={{ background: '#f7efd8', border: '1px solid rgba(255,255,255,0.5)' }}>
 
+          {/* FLOWER DECORATION */}
+          <img
+            src="/flower_branch.png"
+            alt="Hoa đào"
+            className="absolute -top-12 -right-12 w-48 h-auto pointer-events-none z-20 opacity-90 drop-shadow-lg"
+          />
+
           {/* LOGO */}
           <div className="mb-6 group">
             <div className="mx-auto w-20 h-20 rounded-full flex items-center justify-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.05)] transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110"
