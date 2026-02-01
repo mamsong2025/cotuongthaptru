@@ -48,6 +48,47 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
         zIndex: isSelected ? 20 : 1,
       }}
     >
+      {/* Nền quân cờ - NGÀ VOI (Ivory White Background) */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: '50%',
+          background: `
+            linear-gradient(135deg, #fdfaf0 0%, #f4f0e6 100%),
+            repeating-linear-gradient(
+              45deg,
+              transparent,
+              transparent 2px,
+              rgba(139, 90, 43, 0.03) 2px,
+              rgba(139, 90, 43, 0.03) 4px
+            )
+          `,
+          backgroundBlendMode: 'soft-light',
+          border: '1.5px solid #dcd7c9',
+          boxShadow: isSelected
+            ? '0 0 0 3px #fbbf24, 0 4px 15px rgba(0,0,0,0.4)'
+            : isLastMove
+              ? '0 0 0 2px #60a5fa, 0 3px 10px rgba(0,0,0,0.3)'
+              : '0 3px 8px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,1)',
+        }}
+      />
+
+      {/* Vòng tròn viền trong */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '3px',
+          left: '3px',
+          right: '3px',
+          bottom: '3px',
+          borderRadius: '50%',
+          border: piece.color === Color.RED
+            ? '1px solid rgba(185, 28, 28, 0.15)'
+            : '1px solid rgba(31, 41, 55, 0.15)',
+        }}
+      />
+
       {/* Quân cờ dạng Image Asset (100% device independent) */}
       <div
         style={{
@@ -55,11 +96,9 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
           inset: 0,
           borderRadius: '50%',
           overflow: 'hidden',
-          boxShadow: isSelected
-            ? '0 0 0 3px #fbbf24, 0 4px 15px rgba(0,0,0,0.4)'
-            : isLastMove
-              ? '0 0 0 2px #60a5fa, 0 3px 10px rgba(0,0,0,0.3)'
-              : '0 3px 8px rgba(0,0,0,0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
         <img
@@ -68,7 +107,7 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'cover',
+            objectFit: 'contain',
             userSelect: 'none',
             pointerEvents: 'none',
           }}
