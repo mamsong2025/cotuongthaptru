@@ -103,8 +103,6 @@ const App: React.FC = () => {
   const [showAIListInMenu, setShowAIListInMenu] = useState<boolean>(false);
   const [menuPage, setMenuPage] = useState<'main' | 'selectAI'>('main');
   const [isBgmOn, setIsBgmOn] = useState<boolean>(true);
-  const [boardTheme, setBoardTheme] = useState<string>('wooden');
-  const [showThemeList, setShowThemeList] = useState<boolean>(false);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const bgmAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -663,7 +661,6 @@ const App: React.FC = () => {
           lastMove={lastMove}
           legalMoves={selectedPos ? getLegalMoves(board, Color.RED).filter(m => m.from.r === selectedPos.r && m.from.c === selectedPos.c) : []}
           riverMessage={showOverlay && showChat ? currentTalk : null}
-          boardTheme={boardTheme}
         />
 
         {isAiThinking && (
@@ -885,31 +882,6 @@ const App: React.FC = () => {
             🚪 THOÁT GAME
           </button>
 
-          {/* Bộ chọn bàn cờ mới */}
-          <div className="mt-4 pt-4 border-t border-white/10">
-            <div className="text-[10px] text-gray-400 uppercase tracking-widest mb-3">Tùy chọn bàn cờ</div>
-            <div className="flex justify-center gap-3 flex-wrap">
-              {[
-                { id: 'wooden', color: '#5c3a21', label: 'Gỗ' },
-                { id: 'jade', color: '#065f46', label: 'Ngọc' },
-                { id: 'realistic', color: '#c9a24d', label: 'Thật' },
-                { id: 'royal', color: '#8b6914', label: 'Hoàng gia' },
-                { id: 'dark', color: '#1a1a1a', label: 'Tối' }
-              ].map(theme => (
-                <button
-                  key={theme.id}
-                  onClick={() => setBoardTheme(theme.id)}
-                  className={`flex flex-col items-center gap-1 transition-all ${boardTheme === theme.id ? 'scale-110' : 'opacity-60 hover:opacity-100'}`}
-                >
-                  <div
-                    className={`w-10 h-10 rounded-full border-2 ${boardTheme === theme.id ? 'border-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.5)]' : 'border-white/20'}`}
-                    style={{ background: theme.color }}
-                  />
-                  <span className="text-[9px] font-bold text-gray-300">{theme.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 

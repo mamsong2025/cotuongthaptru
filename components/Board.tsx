@@ -16,10 +16,8 @@ interface BoardProps {
   lastMove: Move | null;
   legalMoves: Move[];
   riverMessage?: RiverMessage | null;
-  boardTheme?: string;
 }
 
-// Kích thước ô cờ linh hoạt
 // Kích thước ô cờ linh hoạt để đạt trạng thái "Toàn màn hình" chuẩn tỷ lệ
 const getCellSize = () => {
   if (typeof window === 'undefined') return 44;
@@ -31,14 +29,13 @@ const getCellSize = () => {
   const availableHeight = screenHeight - 180;
 
   // Xiangqi board has 8 intervals width, 9 intervals height
-  // Total intersections: 9 vertical lines, 10 horizontal lines
   const sizeByWidth = Math.floor(availableWidth / 9);
   const sizeByHeight = Math.floor(availableHeight / 10);
 
   return Math.min(60, Math.max(28, Math.min(sizeByWidth, sizeByHeight)));
 };
 
-const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove, legalMoves, riverMessage, boardTheme = 'wooden' }) => {
+const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove, legalMoves, riverMessage }) => {
   const [cellSize, setCellSize] = useState(getCellSize());
 
   useEffect(() => {
@@ -50,41 +47,16 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
   const boardWidth = cellSize * (BOARD_COLS - 1);
   const boardHeight = cellSize * (BOARD_ROWS - 1);
 
-  // Logic CÂN CHỈNH cho bàn cờ Royal (Hình vuông)
-  const isRoyal = boardTheme === 'royal';
-  const vPadding = isRoyal ? cellSize * 1.05 : cellSize / 1.5;
-  const hPadding = isRoyal ? vPadding + (cellSize / 2) : cellSize / 1.5;
+  // DUY NHẤT 1 BÀN CỜ ROYAL (Hình vuông, cao cấp)
+  const vPadding = cellSize * 1.05;
+  const hPadding = vPadding + (cellSize / 2);
 
-  const themes: Record<string, { bg: string, border: string, shadow: string, hideBorder?: boolean }> = {
-    wooden: {
-      bg: 'url("/xiangqi_board_wooden_engraved.png")',
-      border: '#3d2b1f',
-      shadow: '0 20px 50px rgba(0,0,0,0.6), inset 0 2px 10px rgba(255,255,255,0.3)'
-    },
-    realistic: {
-      bg: 'url("/board_realistic.png")',
-      border: '#2c1e12',
-      shadow: '0 20px 50px rgba(0,0,0,0.7), inset 0 2px 10px rgba(255,255,255,0.2)'
-    },
-    jade: {
-      bg: 'url("/board_jade.png")',
-      border: '#042f2e',
-      shadow: '0 20px 60px rgba(0,0,0,0.8), inset 0 0 40px rgba(20,184,166,0.2)'
-    },
-    royal: {
-      bg: 'url("/board_royal.jpg")',
-      border: '#8b6914',
-      shadow: '0 25px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(212,175,55,0.15)',
-      hideBorder: true
-    },
-    dark: {
-      bg: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
-      border: '#333',
-      shadow: '0 20px 50px rgba(0,0,0,0.9), inset 0 2px 10px rgba(255,255,255,0.1)'
-    }
+  const currentTheme = {
+    bg: 'url("/board_royal.jpg")',
+    border: '#8b6914',
+    shadow: '0 25px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(212,175,55,0.15)',
+    hideBorder: true
   };
-
-  const currentTheme = themes[boardTheme] || themes.wooden;
 
   const animationDuration = 350;
   const [animatingPiece, setAnimatingPiece] = useState<{
@@ -189,7 +161,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         width: boardWidth + hPadding * 2,
         height: boardHeight + vPadding * 2,
         backgroundImage: currentTheme.bg,
-        backgroundSize: isRoyal ? '100% 100%' : 'contain',
+        backgroundSize: '100% 100%',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
         border: currentTheme.hideBorder ? 'none' : `${Math.max(6, cellSize / 4)}px solid ${currentTheme.border}`,
