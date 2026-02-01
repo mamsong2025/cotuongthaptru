@@ -49,9 +49,13 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
 
   const boardWidth = cellSize * (BOARD_COLS - 1);
   const boardHeight = cellSize * (BOARD_ROWS - 1);
-  const padding = cellSize / 1.5;
 
-  const themes: Record<string, { bg: string, border: string, shadow: string }> = {
+  // Logic CÂN CHỈNH cho bàn cờ Royal (Hình vuông)
+  const isRoyal = boardTheme === 'royal';
+  const vPadding = isRoyal ? cellSize * 1.05 : cellSize / 1.5;
+  const hPadding = isRoyal ? vPadding + (cellSize / 2) : cellSize / 1.5;
+
+  const themes: Record<string, { bg: string, border: string, shadow: string, hideBorder?: boolean }> = {
     wooden: {
       bg: 'url("/xiangqi_board_wooden_engraved.png")',
       border: '#3d2b1f',
@@ -70,7 +74,8 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
     royal: {
       bg: 'url("/board_royal.jpg")',
       border: '#8b6914',
-      shadow: '0 25px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(212,175,55,0.15)'
+      shadow: '0 25px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(212,175,55,0.15)',
+      hideBorder: true
     },
     dark: {
       bg: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
@@ -181,13 +186,13 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
     <div
       className={`relative rounded-lg shadow-2xl flex-shrink-0 overflow-hidden ${flash ? 'animate-flash' : ''} ${shake ? 'animate-shake' : ''}`}
       style={{
-        width: boardWidth + padding * 2,
-        height: boardHeight + padding * 2,
+        width: boardWidth + hPadding * 2,
+        height: boardHeight + vPadding * 2,
         backgroundImage: currentTheme.bg,
-        backgroundSize: 'contain',
+        backgroundSize: isRoyal ? '100% 100%' : 'contain',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        border: `${Math.max(6, cellSize / 4)}px solid ${currentTheme.border}`,
+        border: currentTheme.hideBorder ? 'none' : `${Math.max(6, cellSize / 4)}px solid ${currentTheme.border}`,
         boxSizing: 'content-box',
         boxShadow: currentTheme.shadow,
       }}
@@ -198,8 +203,8 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
           key={p.id}
           style={{
             position: 'absolute',
-            left: padding + p.c * cellSize + (cellSize / 2),
-            top: padding + p.r * cellSize + (cellSize / 2),
+            left: hPadding + p.c * cellSize + (cellSize / 2),
+            top: vPadding + p.r * cellSize + (cellSize / 2),
             width: `${p.size}px`,
             height: `${p.size}px`,
             backgroundColor: p.color,
@@ -216,7 +221,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
       <div
         style={{
           position: 'absolute',
-          top: padding + cellSize * 4,
+          top: vPadding + cellSize * 4,
           left: 0,
           right: 0,
           height: cellSize,
@@ -256,8 +261,8 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
       {/* Lớp hiển thị quân cờ tĩnh bằng Canvas (Tối ưu hiệu năng & Độ sắc nét) */}
       <canvas
         id="piece-layer"
-        width={boardWidth + padding * 2}
-        height={boardHeight + padding * 2}
+        width={boardWidth + hPadding * 2}
+        height={boardHeight + vPadding * 2}
         style={{
           position: 'absolute',
           top: 0,
@@ -308,8 +313,8 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
                 const img = new Image();
                 img.src = `/pieces/${pieceFileMap[piece.color][piece.type]}`;
 
-                const x = padding + c * CELL_SIZE - CELL_SIZE / 2 + offset;
-                const y = padding + r * CELL_SIZE - CELL_SIZE / 2 + offset;
+                const x = hPadding + c * CELL_SIZE - CELL_SIZE / 2 + offset;
+                const y = vPadding + r * CELL_SIZE - CELL_SIZE / 2 + offset;
 
                 // Render piece
                 if (img.complete) {
@@ -344,7 +349,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
       />
 
       {/* Lớp tương tác (Giữ nguyên cho sự kiện click) */}
-      <div style={{ position: 'absolute', left: padding, top: padding, display: 'grid', gridTemplateColumns: `repeat(${BOARD_COLS}, 0px)`, zIndex: 30 }}>
+      <div style={{ position: 'absolute', left: hPadding, top: vPadding, display: 'grid', gridTemplateColumns: `repeat(${BOARD_COLS}, 0px)`, zIndex: 30 }}>
         {Array.from({ length: BOARD_ROWS }).map((_, r) => (
           Array.from({ length: BOARD_COLS }).map((_, c) => (
             <div key={`${r}-${c}`} style={{ position: 'absolute', left: c * cellSize - cellSize / 2, top: r * cellSize - cellSize / 2, width: cellSize, height: cellSize, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => onCellClick({ r, c })}>
@@ -363,7 +368,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
 
       {/* Quân cờ đang di chuyển (Dùng DOM để animation mượt mà) */}
       {animatingPiece && (
-        <div style={{ position: 'absolute', left: padding, top: padding, width: boardWidth, height: boardHeight, pointerEvents: 'none', zIndex: 100 }}>
+        <div style={{ position: 'absolute', left: hPadding, top: vPadding, width: boardWidth, height: boardHeight, pointerEvents: 'none', zIndex: 100 }}>
           <div
             className={`animating-piece ${animatingPiece.isAnimating ? 'motion-blur-extreme' : ''}`}
             style={{
