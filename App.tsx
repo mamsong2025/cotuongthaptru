@@ -606,12 +606,13 @@ const App: React.FC = () => {
 
 
           <div className="relative z-10">
-            {/* LOGO */}
-            <div className="mb-6 group">
-              <div className="mx-auto w-20 h-20 rounded-full flex items-center justify-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.05)] transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110"
-                style={{ background: '#e8d9b0' }}>
-                <span className="text-4xl font-black" style={{ color: '#2f4f3a', fontFamily: "'Ma Shan Zheng', serif" }}>將</span>
-              </div>
+            {/* LOGO - PHÚC MEDALLION */}
+            <div className="mb-2 group">
+              <img
+                src="/phuc_medallion.png"
+                alt="Chữ Phúc"
+                className="mx-auto w-24 h-24 object-contain transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110 drop-shadow-md"
+              />
             </div>
 
             {/* TITLE & LOGO IMAGE */}
