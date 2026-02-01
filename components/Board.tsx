@@ -34,7 +34,7 @@ const getCellSize = () => {
   const sizeByWidth = Math.floor(availableWidth / 9);
   const sizeByHeight = Math.floor(availableHeight / 10);
 
-  return Math.min(60, Math.max(34, Math.min(sizeByWidth, sizeByHeight)));
+  return Math.min(60, Math.max(28, Math.min(sizeByWidth, sizeByHeight)));
 };
 
 const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove, legalMoves, riverMessage }) => {
@@ -297,7 +297,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
             {riverMessage.text}
           </div>
         ) : (
-          <div style={{ display: 'flex', gap: '50px', fontWeight: 900, fontSize: '20px', color: '#4a3520', fontFamily: 'serif' }}>
+          <div style={{ display: 'flex', gap: '40px', fontWeight: 900, fontSize: '18px', color: '#4a3520', fontFamily: "'Ma Shan Zheng', 'Noto Serif TC', 'STKaiti', 'KaiTi', serif" }}>
             <span>楚 河</span>
             <span>漢 界</span>
           </div>
@@ -311,7 +311,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
             <div key={`${r}-${c}`} style={{ position: 'absolute', left: c * cellSize - cellSize / 2, top: r * cellSize - cellSize / 2, width: cellSize, height: cellSize, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => onCellClick({ r, c })}>
               {isLegalTarget(r, c) && !board[r][c] && <div style={{ position: 'absolute', width: cellSize / 2, height: cellSize / 2, borderRadius: '50%', background: '#22c55e', border: '2px solid white', boxShadow: '0 0 10px #22c55e' }} />}
               {isLegalTarget(r, c) && board[r][c] && <div style={{ position: 'absolute', inset: 0, border: '4px solid #ef4444', borderRadius: '50%', animation: 'pulse 0.5s infinite' }} />}
-              {board[r][c] && !(animatingPiece && animatingPiece.toR === r && animatingPiece.toC === c) && <Piece piece={board[r][c]!} isSelected={isSelected(r, c)} isLastMove={isLastMoveTo(r, r)} />}
+              {board[r][c] && !(animatingPiece && animatingPiece.toR === r && animatingPiece.toC === c) && <Piece piece={board[r][c]!} isSelected={isSelected(r, c)} isLastMove={isLastMoveTo(r, c)} />}
               {capturedPiece && capturedPiece.r === r && capturedPiece.c === c && (
                 <div style={{ position: 'absolute', inset: 0, animation: 'captureExplodeMega 0.3s forwards', zIndex: 25 }}>
                   <Piece piece={capturedPiece.piece} />

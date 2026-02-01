@@ -36,6 +36,7 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
 
   return (
     <div
+      className={`silk-grain ${isSelected ? 'selected' : ''}`}
       style={{
         width: '100%',
         height: '100%',
@@ -54,7 +55,17 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
           position: 'absolute',
           inset: 0,
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, #fdfaf0 0%, #f4f0e6 100%)',
+          background: `
+            linear-gradient(135deg, #fdfaf0 0%, #f4f0e6 100%),
+            repeating-linear-gradient(
+              45deg,
+              transparent,
+              transparent 2px,
+              rgba(139, 90, 43, 0.03) 2px,
+              rgba(139, 90, 43, 0.03) 4px
+            )
+          `,
+          backgroundBlendMode: 'soft-light',
           border: '1.5px solid #dcd7c9',
           boxShadow: isSelected
             ? '0 0 0 3px #fbbf24, 0 4px 15px rgba(0,0,0,0.4)'
@@ -91,7 +102,7 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
         <span
           style={{
             fontSize: '26px',
-            fontFamily: "'Ma Shan Zheng', 'Noto Serif TC', serif",
+            fontFamily: "'Ma Shan Zheng', 'Noto Serif TC', 'STKaiti', 'KaiTi', 'BiauKai', serif",
             fontWeight: 900,
             color: isRed ? '#b91c1c' : '#1f2937', // Deep Red vs Dark Charcoal
             textShadow: isRed

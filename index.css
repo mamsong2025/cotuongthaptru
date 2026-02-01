@@ -1,17 +1,37 @@
 @import "tailwindcss";
 
 body {
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Roboto', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: #1a1a1a;
     color: #eee;
     margin: 0;
     overflow-x: hidden;
+    touch-action: manipulation;
+    /* Cải thiện cảm ứng trên mobile */
 }
 
 .chinese-font {
-    font-family: 'Noto Serif TC', serif;
+    font-family: 'Ma Shan Zheng', 'Noto Serif TC', 'STKaiti', 'KaiTi', serif;
+    font-display: swap;
 }
 
 .board-container {
     aspect-ratio: 9 / 10;
+    max-width: 100vw;
+    max-height: 80vh;
+}
+
+/* Hiệu ứng hạt gỗ/ngà mịn */
+.silk-grain {
+    position: relative;
+}
+
+.silk-grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
+    pointer-events: none;
+    border-radius: inherit;
 }
