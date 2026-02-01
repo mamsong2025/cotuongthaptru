@@ -18,7 +18,7 @@ interface BoardProps {
   riverMessage?: RiverMessage | null;
 }
 
-// KÃ­ch thÆ°á»›c Ã´ cá» linh hoáº¡t Ä‘á»ƒ Ä‘áº¡t tráº¡ng thÃ¡i "ToÃ n mÃ n hÃ¬nh" chuáº©n tá»· lá»‡
+// Kích thước Ã´ cá» linh hoáº¡t Ä‘á»ƒ Ä‘áº¡t tráº¡ng thÃ¡i "ToÃ n mÃ n hÃ¬nh" chuáº©n tá»· lá»‡
 const getCellSize = () => {
   if (typeof window === 'undefined') return 44;
   const screenWidth = window.innerWidth;
@@ -126,143 +126,8 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
             setImagesLoaded(true);
           }
         };
-      });
-    });
-  }, []);
-
-  // Draw board when board changes or images loaded
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !imagesLoaded) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // High DPI Display Optimization
-    const dpr = window.devicePixelRatio || 1;
-
-    // Set actual size in memory if needed
-    if (canvas.width !== (boardWidth + hPadding * 2) * dpr) {
-      canvas.width = (boardWidth + hPadding * 2) * dpr;
-      canvas.height = (boardHeight + vPadding * 2) * dpr;
-    }
-
-    // Reset transform and set scale
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
-
-    const CELL_SIZE = cellSize;
-    const PIECE_SIZE = CELL_SIZE * 0.82;
-    const offset = (CELL_SIZE - PIECE_SIZE) / 2;
-
-    board.forEach((row, r) => {
-      row.forEach((piece, c) => {
-        if (piece &&
-          !(animatingPiece && animatingPiece.toR === r && animatingPiece.toC === c) &&
-          !(capturedPiece && capturedPiece.r === r && capturedPiece.c === c)) {
-
-          const img = loadedImagesRef.current[`${piece.color}_${piece.type}`];
-          const x = hPadding + c * CELL_SIZE - CELL_SIZE / 2 + offset;
-          const y = vPadding + r * CELL_SIZE - CELL_SIZE / 2 + offset;
-
-          if (img) {
-            // Shadow
-            ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-            ctx.shadowBlur = 4;
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 4;
-
-            ctx.drawImage(img, x, y, PIECE_SIZE, PIECE_SIZE);
-
-            // Reset shadow
-            ctx.shadowColor = "transparent";
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-
-            // Highlight selection
-            if (isSelected(r, c)) {
-              ctx.beginPath();
-              ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
-              ctx.strokeStyle = '#fbbf24';
-              ctx.lineWidth = 4;
-              ctx.stroke();
-            }
-
-            // Highlight last move target
-            if (isLastMoveTo(r, c)) {
-              ctx.beginPath();
-              ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
-              ctx.strokeStyle = '#60a5fa';
-              ctx.lineWidth = 3;
-              ctx.stroke();
-            }
-          }
-        }
-      });
-    });
-
-    // Draw indicators for last move SOURCE
-    if (lastMove) {
-      const { from } = lastMove;
-      if (!board[from.r][from.c]) {
-        const x = hPadding + from.c * CELL_SIZE - CELL_SIZE / 2 + CELL_SIZE / 2;
-        const y = vPadding + from.r * CELL_SIZE - CELL_SIZE / 2 + CELL_SIZE / 2;
-
-        ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
-        ctx.fillStyle = '#60a5fa';
-        ctx.fill();
-        ctx.globalAlpha = 0.3;
-        ctx.fillStyle = '#60a5fa';
-        ctx.beginPath();
-        ctx.arc(x, y, 10, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
-      }
-    }
-
-  }, [board, imagesLoaded, animatingPiece, capturedPiece, selectedPos, lastMove, boardWidth, boardHeight, hPadding, vPadding, cellSize]);
-
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [imagesLoaded, setImagesLoaded] = useState(false);
-  const loadedImagesRef = useRef<Record<string, HTMLImageElement>>({});
-
-  // Preload images once
-  useEffect(() => {
-    const pieceTypes = ['KING', 'ADVISOR', 'ELEPHANT', 'HORSE', 'CHARIOT', 'CANNON', 'SOLDIER'];
-    const colors = ['RED', 'BLACK'];
-    const pieceFileMap: Record<string, Record<string, string>> = {
-      'RED': {
-        'KING': 'red_king_shuai.png',
-        'ADVISOR': 'red_advisor_shi.png',
-        'ELEPHANT': 'red_elephant_xiang.png',
-        'HORSE': 'red_horse_ma.png',
-        'CHARIOT': 'red_chariot_ju.png',
-        'CANNON': 'red_cannon_pao.png',
-        'SOLDIER': 'red_soldier_bing.png'
-      },
-      'BLACK': {
-        'KING': 'black_king_jiang.png',
-        'ADVISOR': 'black_advisor_shi.png',
-        'ELEPHANT': 'black_elephant_xiang.png',
-        'HORSE': 'black_horse_ma.png',
-        'CHARIOT': 'black_chariot_ju.png',
-        'CANNON': 'black_cannon_pao.png',
-        'SOLDIER': 'black_soldier_zu.png'
-      }
-    };
-
-    let loadedCount = 0;
-    const totalImages = 14;
-
-    colors.forEach(color => {
-      pieceTypes.forEach(type => {
-        const img = new Image();
-        img.src = `/pieces/${pieceFileMap[color][type]}`;
-        img.onload = () => {
-          loadedImagesRef.current[`${color}_${type}`] = img;
+        img.onerror = () => {
+          console.warn(`Failed to load image: ${img.src}`);
           loadedCount++;
           if (loadedCount === totalImages) {
             setImagesLoaded(true);
@@ -275,7 +140,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
   // Draw board when board changes or images loaded
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !imagesLoaded) return;
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -509,8 +374,8 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
           </div>
         ) : (
           <div style={{ display: 'flex', gap: '40px', fontWeight: 900, fontSize: '18px', color: '#4a3520', fontFamily: "'Ma Shan Zheng', 'Noto Serif TC', 'STKaiti', 'KaiTi', serif" }}>
-            <span>æ¥š æ²³</span>
-            <span>æ¼¢ ç•Œ</span>
+            <span>楚 河</span>
+            <span>漢 界</span>
           </div>
         )}
       </div>
