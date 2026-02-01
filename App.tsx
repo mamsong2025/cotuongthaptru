@@ -604,67 +604,70 @@ const App: React.FC = () => {
             />
           </div>
 
-          {/* LOGO */}
-          <div className="mb-6 group">
-            <div className="mx-auto w-20 h-20 rounded-full flex items-center justify-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.05)] transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110"
-              style={{ background: '#e8d9b0' }}>
-              <span className="text-4xl font-black" style={{ color: '#2f4f3a', fontFamily: "'Ma Shan Zheng', serif" }}>將</span>
+
+          <div className="relative z-10">
+            {/* LOGO */}
+            <div className="mb-6 group">
+              <div className="mx-auto w-20 h-20 rounded-full flex items-center justify-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.05)] transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110"
+                style={{ background: '#e8d9b0' }}>
+                <span className="text-4xl font-black" style={{ color: '#2f4f3a', fontFamily: "'Ma Shan Zheng', serif" }}>將</span>
+              </div>
             </div>
-          </div>
 
-          {/* TITLE & LOGO IMAGE */}
-          <div className="flex flex-col items-center mb-2">
-            <img
-              src="/logo_co_tuong.png"
-              alt="Cờ Tướng"
-              className="h-40 md:h-48 object-contain drop-shadow-xl"
-            />
-          </div>
+            {/* TITLE & LOGO IMAGE */}
+            <div className="flex flex-col items-center mb-2">
+              <img
+                src="/logo_co_tuong.png"
+                alt="Cờ Tướng"
+                className="h-40 md:h-48 object-contain drop-shadow-xl"
+              />
+            </div>
 
-          {/* STATS BAR */}
-          <div className="flex justify-around text-[10px] font-bold uppercase tracking-widest mt-6 mb-8 py-2 border-y border-[#2f4f3a]/5"
-            style={{ color: '#4a5f54' }}>
-            <div className="flex items-center gap-1">👤 1 Người</div>
-            <div className="flex items-center gap-1">🤖 AI</div>
-            <div className="flex items-center gap-1">⚔️ Online</div>
-          </div>
+            {/* STATS BAR */}
+            <div className="flex justify-around text-[10px] font-bold uppercase tracking-widest mt-6 mb-8 py-2 border-y border-[#2f4f3a]/5"
+              style={{ color: '#4a5f54' }}>
+              <div className="flex items-center gap-1">👤 1 Người</div>
+              <div className="flex items-center gap-1">🤖 AI</div>
+              <div className="flex items-center gap-1">⚔️ Online</div>
+            </div>
 
-          {/* MENU BUTTONS */}
-          <div className="space-y-4">
-            <button
-              onClick={() => { playSfx(SOUNDS.MOVE); setMenuPage('selectAI'); }}
-              className="w-full py-4 rounded-2xl text-lg font-bold shadow-lg transform transition-all active:scale-95 hover:translate-y-[-2px] hover:shadow-xl"
-              style={{ background: 'linear-gradient(to bottom, #9ec4a8, #6e9c84)', color: '#ffffff' }}
-            >
-              Chơi nhanh
-            </button>
+            {/* MENU BUTTONS */}
+            <div className="space-y-4">
+              <button
+                onClick={() => { playSfx(SOUNDS.MOVE); setMenuPage('selectAI'); }}
+                className="w-full py-4 rounded-2xl text-lg font-bold shadow-lg transform transition-all active:scale-95 hover:translate-y-[-2px] hover:shadow-xl"
+                style={{ background: 'linear-gradient(to bottom, #9ec4a8, #6e9c84)', color: '#ffffff' }}
+              >
+                Chơi nhanh
+              </button>
 
-            <button
-              onClick={() => { playSfx(SOUNDS.MOVE); alert('Tính năng Chơi với bạn đang được phát triển!'); }}
-              className="w-full py-4 rounded-2xl text-lg font-bold shadow-lg transform transition-all active:scale-95 hover:translate-y-[-2px] hover:shadow-xl"
-              style={{ background: 'linear-gradient(to bottom, #f4d27a, #e3b74e)', color: '#4b3b12' }}
-            >
-              Chơi với bạn
-            </button>
+              <button
+                onClick={() => { playSfx(SOUNDS.MOVE); alert('Tính năng Chơi với bạn đang được phát triển!'); }}
+                className="w-full py-4 rounded-2xl text-lg font-bold shadow-lg transform transition-all active:scale-95 hover:translate-y-[-2px] hover:shadow-xl"
+                style={{ background: 'linear-gradient(to bottom, #f4d27a, #e3b74e)', color: '#4b3b12' }}
+              >
+                Chơi với bạn
+              </button>
 
-            <button
-              onClick={() => { playSfx(SOUNDS.MOVE); alert('Cài đặt sẽ sớm ra mắt!'); }}
-              className="w-full py-4 rounded-2xl text-lg font-bold transition-all active:scale-95 hover:bg-[#dfd0af]"
-              style={{ background: '#e6dbc2', color: '#2f4f3a' }}
-            >
-              Cài đặt
-            </button>
-          </div>
+              <button
+                onClick={() => { playSfx(SOUNDS.MOVE); alert('Cài đặt sẽ sớm ra mắt!'); }}
+                className="w-full py-4 rounded-2xl text-lg font-bold transition-all active:scale-95 hover:bg-[#dfd0af]"
+                style={{ background: '#e6dbc2', color: '#2f4f3a' }}
+              >
+                Cài đặt
+              </button>
+            </div>
 
-          {/* FOOTER */}
-          <div className="mt-8 flex flex-col items-center gap-2">
-            <img
-              src="/kinh_tang_lao_pa.png"
-              alt="Kính tặng lão pa"
-              className="h-8 object-contain opacity-80 mb-1"
-            />
-            <div className="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em]" style={{ color: '#6b6b6b' }}>
-              © 2026 • Cờ Tướng 01213
+            {/* FOOTER */}
+            <div className="mt-8 flex flex-col items-center gap-2">
+              <img
+                src="/kinh_tang_lao_pa.png"
+                alt="Kính tặng lão pa"
+                className="h-8 object-contain opacity-80 mb-1"
+              />
+              <div className="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em]" style={{ color: '#6b6b6b' }}>
+                © 2026 • Cờ Tướng 01213
+              </div>
             </div>
           </div>
         </div>
