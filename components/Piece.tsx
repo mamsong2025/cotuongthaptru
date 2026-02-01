@@ -48,69 +48,69 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
         zIndex: isSelected ? 20 : 1,
       }}
     >
-      {/* Perfect circular piece with hard edges */}
+      {/* Traditional Xiangqi piece with colored ring */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           borderRadius: '50%',
-          background: `
-            linear-gradient(135deg, #fdfaf0 0%, #f4f0e6 100%),
-            repeating-linear-gradient(
-              45deg,
-              transparent,
-              transparent 2px,
-              rgba(139, 90, 43, 0.03) 2px,
-              rgba(139, 90, 43, 0.03) 4px
-            )
-          `,
-          backgroundBlendMode: 'soft-light',
-          border: '1.5px solid #dcd7c9',
+          background: 'linear-gradient(135deg, #f5f0e8 0%, #ebe6de 100%)',
+          border: `4px solid ${isRed ? '#c41e3a' : '#2d5016'}`,
           boxShadow: isSelected
-            ? '0 0 0 3px #fbbf24, 0 4px 15px rgba(0,0,0,0.4)'
+            ? `0 0 0 3px #fbbf24, 0 4px 15px rgba(0,0,0,0.5)`
             : isLastMove
-              ? '0 0 0 2px #60a5fa, 0 3px 10px rgba(0,0,0,0.3)'
-              : '0 3px 8px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,1)',
+              ? `0 0 0 2px #60a5fa, 0 3px 10px rgba(0,0,0,0.4)`
+              : '0 3px 8px rgba(0,0,0,0.3)',
           overflow: 'hidden',
         }}
       >
-        {/* Inner ring */}
+        {/* Inner ivory circle */}
         <div
           style={{
             position: 'absolute',
-            top: '3px',
-            left: '3px',
-            right: '3px',
-            bottom: '3px',
+            inset: '8px',
             borderRadius: '50%',
-            border: isRed
-              ? '1px solid rgba(185, 28, 28, 0.15)'
-              : '1px solid rgba(31, 41, 55, 0.15)',
-          }}
-        />
-
-        {/* Character - using system fonts for reliability */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
+            background: 'linear-gradient(135deg, #fdfaf0 0%, #f4f0e6 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            paddingTop: '2px',
           }}
         >
+          {/* Character with ultra-comprehensive font stack */}
           <span
             style={{
-              fontSize: '26px',
-              fontFamily: "'Noto Serif TC', 'Microsoft YaHei', 'SimHei', 'STHeiti', 'PingFang SC', 'Hiragino Sans GB', 'Source Han Sans CN', 'WenQuanYi Micro Hei', sans-serif",
+              fontSize: '28px',
+              fontFamily: `
+                "Noto Serif TC",
+                "Noto Sans TC", 
+                "Microsoft JhengHei",
+                "Microsoft YaHei",
+                "PingFang TC",
+                "PingFang SC",
+                "Heiti TC",
+                "STHeiti",
+                "SimHei",
+                "SimSun",
+                "MingLiU",
+                "PMingLiU",
+                "Apple LiGothic",
+                "Hiragino Sans GB",
+                "Hiragino Kaku Gothic Pro",
+                "WenQuanYi Micro Hei",
+                "WenQuanYi Zen Hei",
+                "AR PL UMing TW",
+                "AR PL UKai TW",
+                "Droid Sans Fallback",
+                sans-serif
+              `,
               fontWeight: 900,
-              color: isRed ? '#b91c1c' : '#1f2937',
-              textShadow: '0.5px 0.5px 0px rgba(255,255,255,0.5)',
+              color: isRed ? '#8b0000' : '#1a4d2e',
+              textShadow: '0px 0px 1px rgba(0,0,0,0.3)',
               userSelect: 'none',
               lineHeight: 1,
               WebkitFontSmoothing: 'antialiased',
               MozOsxFontSmoothing: 'grayscale',
+              textRendering: 'optimizeLegibility',
             }}
           >
             {char}
