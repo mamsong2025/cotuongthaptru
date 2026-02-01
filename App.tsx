@@ -600,7 +600,7 @@ const App: React.FC = () => {
             <img
               src="/logo_co_tuong.png"
               alt="Cờ Tướng"
-              className="h-28 object-contain drop-shadow-md"
+              className="h-40 md:h-48 object-contain drop-shadow-xl"
             />
           </div>
 
