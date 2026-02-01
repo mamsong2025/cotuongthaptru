@@ -100,10 +100,8 @@ const PERSONALITIES: Record<AIPersonalityKey, PersonalityConfig> = {
 let currentPersonality: AIPersonalityKey = 'elder';
 
 export function setAIPersonality(key: string) {
-  console.log('[DEBUG] setAIPersonality called with:', key);
   if (key in PERSONALITIES) {
     currentPersonality = key as AIPersonalityKey;
-    console.log('[DEBUG] Personality updated to:', currentPersonality);
   }
 }
 
@@ -445,7 +443,6 @@ function getRandomFromList(list: string[]): string {
 // =====================================================
 
 export const getStrategicTalk = async (mode: 'sweet' | 'toxic', context: string): Promise<string> => {
-  console.log('[DEBUG] Current Personality:', currentPersonality);
   const personality = PERSONALITIES[currentPersonality];
   const systemInstruction = mode === 'sweet' ? personality.sweetPrompt : personality.toxicPrompt;
   const randomSeed = Math.random().toString(36).substring(7);
@@ -521,7 +518,6 @@ let currentAudioSource: AudioBufferSourceNode | null = null;
 
 export async function speakText(text: string, audioContext: AudioContext, mode: 'sweet' | 'toxic') {
   // Đã tắt giọng nói theo yêu cầu của người dùng, chỉ giữ lại chữ.
-  console.log('[TTS-DISABLED] Skip speaking:', text);
 }
 
 function speakOffline(text: string) {

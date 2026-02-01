@@ -138,15 +138,74 @@ const App: React.FC = () => {
 
 
 
+  const playWoodenSfx = (isCapture = false) => {
+    if (isMuted || !audioCtxRef.current) return;
+    const ctx = audioCtxRef.current;
+
+    const knock = (timeOffset = 0, volume = 0.4, pitch = 220) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(pitch, ctx.currentTime + timeOffset);
+      osc.frequency.exponentialRampToValueAtTime(pitch * 0.5, ctx.currentTime + timeOffset + 0.1);
+
+      gain.gain.setValueAtTime(volume, ctx.currentTime + timeOffset);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + timeOffset + 0.1);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(800, ctx.currentTime + timeOffset);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(ctx.currentTime + timeOffset);
+      osc.stop(ctx.currentTime + timeOffset + 0.12);
+    };
+
+    if (isCapture) {
+      // Double knock for capture
+      knock(0, 0.4, 200);
+      knock(0.08, 0.3, 180);
+    } else {
+      // Single knock for move
+      knock(0, 0.35, 220);
+    }
+  };
+
   const playSfx = (url: string) => {
     if (isMuted) return;
+
+    // Intercept all board sounds to use the premium wooden synthesis
+    if (url === SOUNDS.MOVE || url === SOUNDS.START) {
+      playWoodenSfx(false);
+      return;
+    }
+    if (url === SOUNDS.CAPTURE) {
+      playWoodenSfx(true);
+      return;
+    }
+    // For Win/Loss, we can do a special wooden sequence
+    if (url === SOUNDS.WIN) {
+      playWoodenSfx(false);
+      setTimeout(() => playWoodenSfx(false), 150);
+      setTimeout(() => playWoodenSfx(true), 300);
+      return;
+    }
+    if (url === SOUNDS.LOSS) {
+      playWoodenSfx(true);
+      setTimeout(() => playWoodenSfx(false), 200);
+      return;
+    }
+
     const audio = new Audio(url);
     audio.volume = 0.4;
     audio.play().catch(() => { });
   };
 
   const triggerTalk = async (text: string, mode: 'sweet' | 'toxic') => {
-    console.log('[DEBUG] triggerTalk:', text, mode);
     setCurrentTalk({ text, mode });
     setShowOverlay(true);
 
@@ -167,17 +226,13 @@ const App: React.FC = () => {
   };
 
   const startIdleTimer = useCallback(() => {
-    console.log('[DEBUG] startIdleTimer called, turn:', turn, 'gameOver:', gameOver);
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     if (turn === Color.RED && !gameOver) {
       idleTimerRef.current = setTimeout(async () => {
-        console.log('[DEBUG] Idle timer fired! Getting idle insult...');
         try {
           const msg = await getIdleInsult();
-          console.log('[DEBUG] Idle message:', msg);
           await triggerTalk(msg, 'sweet');
         } catch (error) {
-          console.error('[DEBUG] Idle talk error:', error);
           // Fallback message
           await triggerTalk("Đại hiệp ơi, còn đó không? Đến lượt ngài rồi!", 'sweet');
         }
@@ -204,11 +259,30 @@ const App: React.FC = () => {
         }
       }
     };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (bgmAudioRef.current) bgmAudioRef.current.pause();
+        if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+          audioCtxRef.current.suspend().catch(() => { });
+        }
+      } else {
+        if (isBgmOn && !isMuted && bgmAudioRef.current) {
+          bgmAudioRef.current.play().catch(() => { });
+        }
+        if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+          audioCtxRef.current.resume().catch(() => { });
+        }
+      }
+    };
+
     window.addEventListener('mousedown', initAudio, { once: true });
     window.addEventListener('touchstart', initAudio, { once: true });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       window.removeEventListener('mousedown', initAudio);
       window.removeEventListener('touchstart', initAudio);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [isBgmOn, isMuted]);
 
@@ -495,14 +569,14 @@ const App: React.FC = () => {
               boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.3)'
             }}
           >
-            <span className="text-5xl text-[#8b0000] font-bold" style={{ fontFamily: '"KaiTi", "SimSun", serif' }}>將</span>
+            <span className="text-5xl text-[#8b0000] font-black" style={{ fontFamily: "'Ma Shan Zheng', 'Noto Serif TC', serif" }}>將</span>
           </div>
 
           {/* Logo Text - "Cờ Tướng" */}
           <h1
-            className="text-5xl font-bold tracking-wide"
+            className="text-5xl font-black tracking-wide"
             style={{
-              fontFamily: '"Brush Script MT", "Segoe Script", cursive',
+              fontFamily: "'Ma Shan Zheng', 'Noto Serif TC', serif",
               background: 'linear-gradient(180deg, #f5d0a9 0%, #d4af37 50%, #8b6914 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -510,7 +584,7 @@ const App: React.FC = () => {
               filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
             }}
           >
-            Cờ Tướng
+            Cờ Tướng Thập Trụ
           </h1>
           <p className="text-[#8b6914] text-sm mt-1 italic">Xiangqi Master</p>
         </div>

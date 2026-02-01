@@ -48,36 +48,36 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
         zIndex: isSelected ? 20 : 1,
       }}
     >
-      {/* Nền quân cờ */}
+      {/* Nền quân cờ - NGÀ VOI (Ivory White) */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           borderRadius: '50%',
-          background: 'radial-gradient(circle at 35% 35%, #fff8e7, #f0e4c8 50%, #dccca0)',
-          border: '2.5px solid #7a6540',
+          background: 'linear-gradient(135deg, #fdfaf0 0%, #f4f0e6 100%)',
+          border: '1.5px solid #dcd7c9',
           boxShadow: isSelected
-            ? '0 0 0 3px #fbbf24, 0 4px 15px rgba(0,0,0,0.5)'
+            ? '0 0 0 3px #fbbf24, 0 4px 15px rgba(0,0,0,0.4)'
             : isLastMove
-              ? '0 0 0 2px #60a5fa, 0 3px 10px rgba(0,0,0,0.35)'
-              : '0 3px 8px rgba(0,0,0,0.35), inset 0 2px 4px rgba(255,255,255,0.5)',
+              ? '0 0 0 2px #60a5fa, 0 3px 10px rgba(0,0,0,0.3)'
+              : '0 3px 8px rgba(0,0,0,0.2), inset 0 1px 2px rgba(255,255,255,1)',
         }}
       />
 
-      {/* Vòng tròn viền trong - ĐẬM HƠN */}
+      {/* Vòng tròn viền trong - MẢNH VÀ TINH TẾ */}
       <div
         style={{
           position: 'absolute',
-          top: '4px',
-          left: '4px',
-          right: '4px',
-          bottom: '4px',
+          top: '3px',
+          left: '3px',
+          right: '3px',
+          bottom: '3px',
           borderRadius: '50%',
-          border: isRed ? '2px solid #b91c1c' : '2px solid #1e3a5f',
+          border: isRed ? '1px solid rgba(185, 28, 28, 0.2)' : '1px solid rgba(31, 41, 55, 0.2)',
         }}
       />
 
-      {/* Chữ Hán - ĐẬM HƠN, căn giữa và xuống chút */}
+      {/* Chữ Hán - KHẮC TRỰC TIẾP (Engraved Look) */}
       <div
         style={{
           position: 'absolute',
@@ -85,18 +85,18 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          paddingTop: '2px',
+          paddingTop: '1px',
         }}
       >
         <span
           style={{
-            fontSize: '24px',
-            fontFamily: "'Noto Serif TC', 'serif'", // High compatibility
+            fontSize: '26px',
+            fontFamily: "'Ma Shan Zheng', 'Noto Serif TC', serif",
             fontWeight: 900,
-            color: isRed ? '#991b1b' : '#111827',
+            color: isRed ? '#b91c1c' : '#1f2937', // Deep Red vs Dark Charcoal
             textShadow: isRed
-              ? '0.5px 0.5px 0px rgba(255,255,255,0.4)'
-              : '0.5px 0.5px 0px rgba(255,255,255,0.2)',
+              ? '0.5px 0.5px 0px rgba(255,255,255,0.5)'
+              : '0.5px 0.5px 0px rgba(255,255,255,0.3)',
             userSelect: 'none',
             lineHeight: 1,
             WebkitFontSmoothing: 'antialiased',
@@ -109,4 +109,4 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
   );
 };
 
-export default Piece;
+export default React.memo(Piece);
