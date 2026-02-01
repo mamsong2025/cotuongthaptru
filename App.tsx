@@ -588,19 +588,19 @@ const App: React.FC = () => {
           style={{ background: '#f7efd8', border: '1px solid rgba(255,255,255,0.5)' }}>
 
 
-          {/* FLOWER DECORATION - RIGHT TOP */}
-          <img
-            src="/flower_branch.png"
-            alt="Hoa đào"
-            className="absolute -top-12 -right-12 w-48 h-auto pointer-events-none z-20 opacity-90 drop-shadow-lg"
-          />
-
-          {/* BAMBOO DECORATION - CLIPPED INSIDE */}
+          {/* DECORATIONS - CLIPPED INSIDE */}
           <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none z-0">
+            {/* Bamboo - Left */}
             <img
               src="/bamboo_ink.png"
               alt="Trúc mực"
               className="absolute top-0 left-0 h-full w-auto object-cover opacity-10 mix-blend-multiply"
+            />
+            {/* Flower - Right Top (Enlarged & Clipped) */}
+            <img
+              src="/flower_branch.png"
+              alt="Hoa đào"
+              className="absolute -top-4 -right-4 w-64 h-auto opacity-90 mix-blend-multiply"
             />
           </div>
 
