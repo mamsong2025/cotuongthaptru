@@ -572,8 +572,11 @@ const App: React.FC = () => {
             />
             <h1 className="text-3xl font-bold tracking-tight mt-[-15px]"
               style={{ color: '#2f4f3a', fontFamily: 'Georgia, serif' }}>Cờ Tướng 01213</h1>
-            <p className="text-sm italic mt-1 font-medium"
-              style={{ color: '#5c6f63', fontFamily: 'Georgia, serif' }}>kính tặng lão pa</p>
+            <img
+              src="/kinh_tang_lao_pa.png"
+              alt="Kính tặng lão pa"
+              className="h-10 md:h-12 object-contain mt-1"
+            />
           </div>
 
           {/* STATS BAR */}
