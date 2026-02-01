@@ -151,8 +151,11 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
       style={{
         width: boardWidth + padding * 2,
         height: boardHeight + padding * 2,
-        background: 'linear-gradient(135deg, #8b6f47 0%, #6b5638 25%, #5a4a2f 50%, #4a3d26 75%, #3d3220 100%)',
-        border: `${Math.max(6, cellSize / 4)}px solid #5c3a21`,
+        // Sử dụng Asset hình ảnh đúc sẵn để tránh lỗi vẽ trên các thiết bị
+        backgroundImage: 'url("/xiangqi_board_wooden_engraved.png")',
+        backgroundSize: '100% 100%',
+        backgroundPosition: 'center',
+        border: `${Math.max(6, cellSize / 4)}px solid #3d2b1f`,
         boxSizing: 'content-box',
         boxShadow: '0 20px 50px rgba(0,0,0,0.6), inset 0 2px 10px rgba(255,255,255,0.3)',
       }}
@@ -177,93 +180,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         />
       ))}
 
-      {/* Vân gỗ nhẹ */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(rgba(101, 67, 33, 0.1), transparent)',
-          mixBlendMode: 'multiply',
-          pointerEvents: 'none',
-        }}
-      />
-
-      {/* Vân gỗ ngang */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `
-            repeating-linear-gradient(
-              0deg,
-              transparent,
-              transparent 8px,
-              rgba(101, 67, 33, 0.06) 8px,
-              rgba(101, 67, 33, 0.06) 10px,
-              transparent 10px,
-              transparent 25px
-            ),
-            repeating-linear-gradient(
-              0deg,
-              transparent,
-              transparent 40px,
-              rgba(139, 90, 43, 0.08) 40px,
-              rgba(139, 90, 43, 0.08) 42px,
-              transparent 42px,
-              transparent 80px
-            )
-          `,
-        }}
-      />
-
-      {/* Vân gỗ uốn lượn */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `
-            repeating-linear-gradient(
-              2deg,
-              transparent,
-              transparent 60px,
-              rgba(101, 67, 33, 0.04) 60px,
-              rgba(101, 67, 33, 0.04) 62px
-            ),
-            repeating-linear-gradient(
-              -1deg,
-              transparent,
-              transparent 45px,
-              rgba(80, 50, 20, 0.05) 45px,
-              rgba(80, 50, 20, 0.05) 47px
-            )
-          `,
-        }}
-      />
-
-      {/* Lưới bàn cờ - SVG */}
-      <svg
-        className="absolute pointer-events-none"
-        width={boardWidth + 4}
-        height={boardHeight + 4}
-        style={{ left: padding - 2, top: padding - 2, zIndex: 2 }}
-      >
-        {Array.from({ length: BOARD_ROWS }).map((_, i) => (
-          <line key={`h-${i}`} x1={2} y1={cellSize * i + 2} x2={boardWidth + 2} y2={cellSize * i + 2} stroke="#4a3520" strokeWidth="1.5" />
-        ))}
-        {Array.from({ length: BOARD_COLS }).map((_, i) => (
-          <line key={`v-top-${i}`} x1={cellSize * i + 2} y1={2} x2={cellSize * i + 2} y2={cellSize * 4 + 2} stroke="#4a3520" strokeWidth="1.5" />
-        ))}
-        {Array.from({ length: BOARD_COLS }).map((_, i) => (
-          <line key={`v-bot-${i}`} x1={cellSize * i + 2} y1={cellSize * 5 + 2} x2={cellSize * i + 2} y2={boardHeight + 2} stroke="#4a3520" strokeWidth="1.5" />
-        ))}
-        <line x1={cellSize * 3 + 2} y1={2} x2={cellSize * 5 + 2} y2={cellSize * 2 + 2} stroke="#4a3520" strokeWidth="1" />
-        <line x1={cellSize * 5 + 2} y1={2} x2={cellSize * 3 + 2} y2={cellSize * 2 + 2} stroke="#4a3520" strokeWidth="1" />
-        <line x1={cellSize * 3 + 2} y1={cellSize * 7 + 2} x2={cellSize * 5 + 2} y2={cellSize * 9 + 2} stroke="#4a3520" strokeWidth="1" />
-        <line x1={cellSize * 5 + 2} y1={cellSize * 7 + 2} x2={cellSize * 3 + 2} y2={cellSize * 9 + 2} stroke="#4a3520" strokeWidth="1" />
-        <rect x={2} y={2} width={boardWidth} height={boardHeight} fill="none" stroke="#4a3520" strokeWidth="3" />
-      </svg>
-
-      {/* Vùng sông */}
+      {/* Vùng sông (Chỉ hiển thị message nếu có, không vẽ lưới) */}
       <div
         style={{
           position: 'absolute',
