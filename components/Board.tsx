@@ -16,6 +16,7 @@ interface BoardProps {
   lastMove: Move | null;
   legalMoves: Move[];
   riverMessage?: RiverMessage | null;
+  boardTheme?: string;
 }
 
 // Kích thước ô cờ linh hoạt
@@ -37,7 +38,7 @@ const getCellSize = () => {
   return Math.min(60, Math.max(28, Math.min(sizeByWidth, sizeByHeight)));
 };
 
-const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove, legalMoves, riverMessage }) => {
+const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove, legalMoves, riverMessage, boardTheme = 'wooden' }) => {
   const [cellSize, setCellSize] = useState(getCellSize());
 
   useEffect(() => {
@@ -48,8 +49,34 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
 
   const boardWidth = cellSize * (BOARD_COLS - 1);
   const boardHeight = cellSize * (BOARD_ROWS - 1);
-  const padding = cellSize / 1.5; // Padding nhỏ hơn để bàn cờ trông gọn hơn
-  const animationDuration = 350; // Nhanh hơn để mượt hơn
+  const padding = cellSize / 1.5;
+
+  const themes: Record<string, { bg: string, border: string, shadow: string }> = {
+    wooden: {
+      bg: 'url("/xiangqi_board_wooden_engraved.png")',
+      border: '#3d2b1f',
+      shadow: '0 20px 50px rgba(0,0,0,0.6), inset 0 2px 10px rgba(255,255,255,0.3)'
+    },
+    realistic: {
+      bg: 'url("/board_realistic.png")',
+      border: '#2c1e12',
+      shadow: '0 20px 50px rgba(0,0,0,0.7), inset 0 2px 10px rgba(255,255,255,0.2)'
+    },
+    jade: {
+      bg: 'url("/board_jade.png")',
+      border: '#042f2e',
+      shadow: '0 20px 60px rgba(0,0,0,0.8), inset 0 0 40px rgba(20,184,166,0.2)'
+    },
+    dark: {
+      bg: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
+      border: '#333',
+      shadow: '0 20px 50px rgba(0,0,0,0.9), inset 0 2px 10px rgba(255,255,255,0.1)'
+    }
+  };
+
+  const currentTheme = themes[boardTheme] || themes.wooden;
+
+  const animationDuration = 350;
   const [animatingPiece, setAnimatingPiece] = useState<{
     piece: any;
     fromR: number;
@@ -151,13 +178,12 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
       style={{
         width: boardWidth + padding * 2,
         height: boardHeight + padding * 2,
-        // Sử dụng Asset hình ảnh đúc sẵn để tránh lỗi vẽ trên các thiết bị
-        backgroundImage: 'url("/xiangqi_board_wooden_engraved.png")',
+        backgroundImage: currentTheme.bg,
         backgroundSize: '100% 100%',
         backgroundPosition: 'center',
-        border: `${Math.max(6, cellSize / 4)}px solid #3d2b1f`,
+        border: `${Math.max(6, cellSize / 4)}px solid ${currentTheme.border}`,
         boxSizing: 'content-box',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.6), inset 0 2px 10px rgba(255,255,255,0.3)',
+        boxShadow: currentTheme.shadow,
       }}
     >
       {/* Particle Overload Layer */}
@@ -221,16 +247,92 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         )}
       </div>
 
-      {/* Lớp tương tác */}
-      <div style={{ position: 'absolute', left: padding, top: padding, display: 'grid', gridTemplateColumns: `repeat(${BOARD_COLS}, 0px)`, zIndex: 10 }}>
+      {/* Lớp hiển thị quân cờ tĩnh bằng Canvas (Tối ưu hiệu năng & Độ sắc nét) */}
+      <canvas
+        id="piece-layer"
+        width={boardWidth + padding * 2}
+        height={boardHeight + padding * 2}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          pointerEvents: 'none',
+          zIndex: 20
+        }}
+        ref={(canvas) => {
+          if (!canvas) return;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          const CELL_SIZE = cellSize;
+          const PIECE_SIZE = CELL_SIZE * 0.9; // Cố định theo yêu cầu
+          const offset = (CELL_SIZE - PIECE_SIZE) / 2;
+
+          board.forEach((row, r) => {
+            row.forEach((piece, c) => {
+              // Chỉ vẽ những quân không trong trạng thái bị ăn hoặc đang di chuyển
+              if (piece &&
+                !(animatingPiece && animatingPiece.toR === r && animatingPiece.toC === c) &&
+                !(capturedPiece && capturedPiece.r === r && capturedPiece.c === c)) {
+
+                const img = new Image();
+                img.src = `/pieces/${piece.color === Color.RED ? 'red' : 'black'}_${piece.type.toLowerCase()}_${piece.type === 'KING' ? (piece.color === Color.RED ? 'shuai' : 'jiang') :
+                  piece.type === 'ADVISOR' ? 'shi' :
+                    piece.type === 'ELEPHANT' ? (piece.color === Color.RED ? 'xiang' : 'xiang') :
+                      piece.type === 'HORSE' ? 'ma' :
+                        piece.type === 'CHARIOT' ? 'ju' :
+                          piece.type === 'CANNON' ? 'pao' : 'bing'
+                  }.png`;
+
+                // Lưu ý: Trong thực tế nên preload ảnh, ở đây ta render trực tiếp
+                // Nếu ảnh chưa load, nó sẽ không hiện ngay, nhưng React sẽ re-render khi board thay đổi
+                const x = padding + c * CELL_SIZE - CELL_SIZE / 2 + offset;
+                const y = padding + r * CELL_SIZE - CELL_SIZE / 2 + offset;
+
+                // Đồng bộ logic: ctx.drawImage(piece, x, y, PIECE_SIZE, PIECE_SIZE)
+                if (img.complete) {
+                  ctx.drawImage(img, x, y, PIECE_SIZE, PIECE_SIZE);
+
+                  // Thêm hiệu ứng Highlight nếu là quân đang được chọn
+                  if (isSelected(r, c)) {
+                    ctx.beginPath();
+                    ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+                  }
+
+                  // Hiệu ứng nước đi cuối
+                  if (isLastMoveTo(r, c)) {
+                    ctx.beginPath();
+                    ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#60a5fa';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                  }
+                } else {
+                  img.onload = () => {
+                    ctx.drawImage(img, x, y, PIECE_SIZE, PIECE_SIZE);
+                  };
+                }
+              }
+            });
+          });
+        }}
+      />
+
+      {/* Lớp tương tác (Giữ nguyên cho sự kiện click) */}
+      <div style={{ position: 'absolute', left: padding, top: padding, display: 'grid', gridTemplateColumns: `repeat(${BOARD_COLS}, 0px)`, zIndex: 30 }}>
         {Array.from({ length: BOARD_ROWS }).map((_, r) => (
           Array.from({ length: BOARD_COLS }).map((_, c) => (
             <div key={`${r}-${c}`} style={{ position: 'absolute', left: c * cellSize - cellSize / 2, top: r * cellSize - cellSize / 2, width: cellSize, height: cellSize, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => onCellClick({ r, c })}>
               {isLegalTarget(r, c) && !board[r][c] && <div style={{ position: 'absolute', width: cellSize / 2, height: cellSize / 2, borderRadius: '50%', background: '#22c55e', border: '2px solid white', boxShadow: '0 0 10px #22c55e' }} />}
               {isLegalTarget(r, c) && board[r][c] && <div style={{ position: 'absolute', inset: 0, border: '4px solid #ef4444', borderRadius: '50%', animation: 'pulse 0.5s infinite' }} />}
-              {board[r][c] && !(animatingPiece && animatingPiece.toR === r && animatingPiece.toC === c) && <Piece piece={board[r][c]!} isSelected={isSelected(r, c)} isLastMove={isLastMoveTo(r, c)} />}
+              {/* Quân cờ bị ăn (Explosion effect) */}
               {capturedPiece && capturedPiece.r === r && capturedPiece.c === c && (
-                <div style={{ position: 'absolute', inset: 0, animation: 'captureExplodeMega 0.3s forwards', zIndex: 25 }}>
+                <div style={{ position: 'absolute', inset: 0, animation: 'captureExplodeMega 0.3s forwards', zIndex: 50 }}>
                   <Piece piece={capturedPiece.piece} />
                 </div>
               )}
@@ -239,7 +341,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         ))}
       </div>
 
-      {/* Quân cờ đang di chuyển */}
+      {/* Quân cờ đang di chuyển (Dùng DOM để animation mượt mà) */}
       {animatingPiece && (
         <div style={{ position: 'absolute', left: padding, top: padding, width: boardWidth, height: boardHeight, pointerEvents: 'none', zIndex: 100 }}>
           <div
