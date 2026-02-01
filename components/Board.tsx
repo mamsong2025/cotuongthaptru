@@ -1,6 +1,6 @@
 ﻿
-import React, { useState, useEffect, useRef } from 'react';
-import { Board as BoardType, Position, Move, Color } from '../types';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Board as BoardType, Position, Move, Color, PieceType } from '../types';
 import Piece from './Piece';
 import { BOARD_COLS, BOARD_ROWS } from '../constants';
 
@@ -18,13 +18,13 @@ interface BoardProps {
   riverMessage?: RiverMessage | null;
 }
 
-// Kích thước Ã´ cá» linh hoáº¡t Ä‘á»ƒ Ä‘áº¡t tráº¡ng thÃ¡i "ToÃ n mÃ n hÃ¬nh" chuáº©n tá»· lá»‡
+// Kích thước ô cờ linh hoạt để đạt trạng thái "Toàn màn hình" chuẩn tỷ lệ
 const getCellSize = () => {
   if (typeof window === 'undefined') return 44;
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
 
-  // Trá»« lá» Header (~100px) vÃ  Controls (~80px)
+  // Trừ lề Header (~100px) và Controls (~80px)
   const availableWidth = screenWidth - 40;
   const availableHeight = screenHeight - 180;
 
@@ -47,19 +47,14 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
   const boardWidth = cellSize * (BOARD_COLS - 1);
   const boardHeight = cellSize * (BOARD_ROWS - 1);
 
-  // HOÃ€N Háº¢O TUYá»†T Äá»I - GiÃ¡ trá»‹ Ä‘Ã£ Ä‘Æ°á»£c tinh chá»‰nh thá»§ cÃ´ng
-  const vPadding = cellSize * 0.500;
-  const hPadding = cellSize * 0.455;
-
-
-  const currentTheme = {
-    bg: 'url("/board_royal.jpg")',
-    border: '#4a3520',
-    shadow: '0 25px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.2)',
-    hideBorder: true
-  };
+  // Padding cho bàn cờ
+  // Padding cho bàn cờ - Đảm bảo là số nguyên để tránh nhòe hình (Sub-pixel rendering)
+  const vPadding = Math.round(cellSize * 0.6);
+  const hPadding = Math.round(cellSize * 0.6);
 
   const animationDuration = 350;
+
+  // States cho hiệu ứng và animation
   const [animatingPiece, setAnimatingPiece] = useState<{
     piece: any;
     fromR: number;
@@ -83,11 +78,16 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
   const prevBoardRef = useRef<BoardType>(board);
   const particleIdRef = useRef(0);
 
+  // Canvas States & Refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const loadedImagesRef = useRef<Record<string, HTMLImageElement>>({});
 
-  // Preload images once
+  const isSelected = useCallback((r: number, c: number) => selectedPos?.r === r && selectedPos?.c === c, [selectedPos]);
+  const isLastMoveTo = useCallback((r: number, c: number) => lastMove?.to.r === r && lastMove?.to.c === c, [lastMove]);
+  const isLegalTarget = useCallback((r: number, c: number) => legalMoves.some(m => m.to.r === r && m.to.c === c), [legalMoves]);
+
+  // 1. Preload images once
   useEffect(() => {
     const pieceTypes = ['KING', 'ADVISOR', 'ELEPHANT', 'HORSE', 'CHARIOT', 'CANNON', 'SOLDIER'];
     const colors = ['RED', 'BLACK'];
@@ -113,31 +113,31 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
     };
 
     let loadedCount = 0;
-    const totalImages = 14;
+    const totalImages = colors.length * pieceTypes.length;
 
     colors.forEach(color => {
       pieceTypes.forEach(type => {
         const img = new Image();
         img.src = `/pieces/${pieceFileMap[color][type]}`;
-        img.onload = () => {
-          loadedImagesRef.current[`${color}_${type}`] = img;
+        const checkDone = () => {
           loadedCount++;
           if (loadedCount === totalImages) {
             setImagesLoaded(true);
           }
         };
+        img.onload = () => {
+          loadedImagesRef.current[`${color}_${type}`] = img;
+          checkDone();
+        };
         img.onerror = () => {
           console.warn(`Failed to load image: ${img.src}`);
-          loadedCount++;
-          if (loadedCount === totalImages) {
-            setImagesLoaded(true);
-          }
+          checkDone();
         };
       });
     });
   }, []);
 
-  // Draw board when board changes or images loaded
+  // 2. High-DPI Canvas Drawing
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -145,23 +145,25 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // High DPI Display Optimization
     const dpr = window.devicePixelRatio || 1;
+    const logicalWidth = Math.round(boardWidth + hPadding * 2);
+    const logicalHeight = Math.round(boardHeight + vPadding * 2);
 
-    // Set actual size in memory if needed
-    if (canvas.width !== (boardWidth + hPadding * 2) * dpr) {
-      canvas.width = (boardWidth + hPadding * 2) * dpr;
-      canvas.height = (boardHeight + vPadding * 2) * dpr;
+    // Cập nhật kích thước canvas nếu cần
+    if (canvas.width !== Math.floor(logicalWidth * dpr) || canvas.height !== Math.floor(logicalHeight * dpr)) {
+      canvas.width = Math.floor(logicalWidth * dpr);
+      canvas.height = Math.floor(logicalHeight * dpr);
+      canvas.style.width = `${logicalWidth}px`;
+      canvas.style.height = `${logicalHeight}px`;
     }
 
-    // Reset transform and set scale
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.clearRect(0, 0, logicalWidth, logicalHeight);
 
-    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
-
-    const CELL_SIZE = cellSize;
-    const PIECE_SIZE = CELL_SIZE * 0.82;
-    const offset = (CELL_SIZE - PIECE_SIZE) / 2;
+    const PIECE_SIZE = cellSize * 0.78;
+    const offset = (cellSize - PIECE_SIZE) / 2;
 
     board.forEach((row, r) => {
       row.forEach((piece, c) => {
@@ -170,17 +172,31 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
           !(capturedPiece && capturedPiece.r === r && capturedPiece.c === c)) {
 
           const img = loadedImagesRef.current[`${piece.color}_${piece.type}`];
-          const x = hPadding + c * CELL_SIZE - CELL_SIZE / 2 + offset;
-          const y = vPadding + r * CELL_SIZE - CELL_SIZE / 2 + offset;
+          const x = hPadding + c * cellSize - cellSize / 2 + offset;
+          const y = vPadding + r * cellSize - cellSize / 2 + offset;
 
           if (img) {
             // Shadow
-            ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+            ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
             ctx.shadowBlur = 4;
             ctx.shadowOffsetX = 2;
             ctx.shadowOffsetY = 4;
 
-            ctx.drawImage(img, x, y, PIECE_SIZE, PIECE_SIZE);
+            // Paint piece - Round coordinates to avoid blur
+            ctx.drawImage(img, Math.round(x), Math.round(y), Math.round(PIECE_SIZE), Math.round(PIECE_SIZE));
+
+            // Side color ring (Red vs Black)
+            ctx.beginPath();
+            ctx.arc(
+              Math.round(x + PIECE_SIZE / 2),
+              Math.round(y + PIECE_SIZE / 2),
+              Math.round(PIECE_SIZE / 2),
+              0,
+              Math.PI * 2
+            );
+            ctx.strokeStyle = piece.color === 'RED' ? '#dc2626' : '#111827';
+            ctx.lineWidth = 3;
+            ctx.stroke();
 
             // Reset shadow
             ctx.shadowColor = "transparent";
@@ -188,7 +204,6 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
 
-            // Highlight selection
             if (isSelected(r, c)) {
               ctx.beginPath();
               ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
@@ -197,7 +212,6 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
               ctx.stroke();
             }
 
-            // Highlight last move target
             if (isLastMoveTo(r, c)) {
               ctx.beginPath();
               ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
@@ -210,68 +224,51 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
       });
     });
 
-    // Draw indicators for last move SOURCE
     if (lastMove) {
       const { from } = lastMove;
       if (!board[from.r][from.c]) {
-        const x = hPadding + from.c * CELL_SIZE - CELL_SIZE / 2 + CELL_SIZE / 2;
-        const y = vPadding + from.r * CELL_SIZE - CELL_SIZE / 2 + CELL_SIZE / 2;
-
+        const x = hPadding + from.c * cellSize;
+        const y = vPadding + from.r * cellSize;
         ctx.beginPath();
         ctx.arc(x, y, 4, 0, Math.PI * 2);
         ctx.fillStyle = '#60a5fa';
         ctx.fill();
         ctx.globalAlpha = 0.3;
-        ctx.fillStyle = '#60a5fa';
         ctx.beginPath();
         ctx.arc(x, y, 10, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1.0;
       }
     }
+  }, [board, imagesLoaded, animatingPiece, capturedPiece, selectedPos, lastMove, cellSize, boardWidth, boardHeight, hPadding, vPadding, isSelected, isLastMoveTo]);
 
-  }, [board, imagesLoaded, animatingPiece, capturedPiece, selectedPos, lastMove, boardWidth, boardHeight, hPadding, vPadding, cellSize]);
-
-  // Detect when a new move happens and trigger animation
+  // 3. Move Animations
   useEffect(() => {
     if (lastMove && lastMove !== prevLastMoveRef.current) {
       const movingPiece = board[lastMove.to.r][lastMove.to.c];
       const targetR = lastMove.to.r;
       const targetC = lastMove.to.c;
-
       const previouslyAtTarget = prevBoardRef.current[targetR][targetC];
       const isCapture = previouslyAtTarget !== null;
 
       if (movingPiece) {
         if (isCapture) {
-          setCapturedPiece({
-            piece: previouslyAtTarget,
-            r: targetR,
-            c: targetC
-          });
-
-          // OVERLOAD EFFECTS: Flash, Shake and 50+ Particles
+          setCapturedPiece({ piece: previouslyAtTarget, r: targetR, c: targetC });
           setFlash(true);
           setShake(true);
-          setTimeout(() => {
-            setFlash(false);
-            setShake(false);
-          }, 200);
+          setTimeout(() => { setFlash(false); setShake(false); }, 200);
 
-          const newParticles = Array.from({ length: 50 }).map(() => ({
+          const newParticles = Array.from({ length: 30 }).map(() => ({
             id: particleIdRef.current++,
             r: targetR,
             c: targetC,
             vx: (Math.random() - 0.5) * 20,
             vy: (Math.random() - 0.5) * 20,
             color: previouslyAtTarget.color === Color.RED ? '#ff0000' : '#ffd700',
-            size: Math.random() * 10 + 4
+            size: Math.random() * 8 + 2
           }));
           setParticles(prev => [...prev, ...newParticles]);
-          setTimeout(() => {
-            setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
-          }, 800);
-
+          setTimeout(() => setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id))), 800);
           setTimeout(() => setCapturedPiece(null), 300);
         }
 
@@ -290,56 +287,45 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
           });
         });
 
-        setTimeout(() => {
-          setAnimatingPiece(null);
-        }, animationDuration + 50);
+        setTimeout(() => setAnimatingPiece(null), animationDuration + 50);
       }
     }
     prevLastMoveRef.current = lastMove;
-    prevBoardRef.current = board;
+    prevBoardRef.current = board.map(row => [...row]);
   }, [lastMove, board, animationDuration]);
-
-  const isSelected = (r: number, c: number) => selectedPos?.r === r && selectedPos?.c === c;
-  const isLastMoveFrom = (r: number, c: number) => lastMove?.from.r === r && lastMove?.from.c === c;
-  const isLastMoveTo = (r: number, c: number) => lastMove?.to.r === r && lastMove?.to.c === c;
-  const isLegalTarget = (r: number, c: number) => legalMoves.some(m => m.to.r === r && m.to.c === c);
 
   return (
     <div
-      className={`relative rounded-lg shadow-2xl flex-shrink-0 overflow-hidden ${flash ? 'animate-flash' : ''} ${shake ? 'animate-shake' : ''}`}
+      className={`relative rounded-lg shadow-2xl flex-shrink-0 ${flash ? 'animate-flash' : ''} ${shake ? 'animate-shake' : ''}`}
       style={{
         width: boardWidth + hPadding * 2,
         height: boardHeight + vPadding * 2,
-        backgroundImage: currentTheme.bg,
+        backgroundImage: 'url("/board_royal.jpg")',
         backgroundSize: '100% 100%',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        border: currentTheme.hideBorder ? 'none' : `${Math.max(6, cellSize / 4)}px solid ${currentTheme.border}`,
-        boxSizing: 'content-box',
-        boxShadow: currentTheme.shadow,
+        boxShadow: '0 25px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.2)',
       }}
     >
-      {/* Particle Overload Layer */}
+      {/* Particles */}
       {particles.map(p => (
         <div
           key={p.id}
           style={{
             position: 'absolute',
-            left: hPadding + p.c * cellSize + (cellSize / 2),
-            top: vPadding + p.r * cellSize + (cellSize / 2),
+            left: hPadding + p.c * cellSize,
+            top: vPadding + p.r * cellSize,
             width: `${p.size}px`,
             height: `${p.size}px`,
             backgroundColor: p.color,
-            borderRadius: '2px', // Square particles for arcade feel
+            borderRadius: '2px',
             zIndex: 1000,
-            transform: `translate(${p.vx * 15}px, ${p.vy * 15}px) scale(0) rotate(${Math.random() * 360}deg)`,
+            transform: `translate(${p.vx * 15}px, ${p.vy * 15}px) scale(0)`,
             animation: 'particleFlyMega 0.8s cubic-bezier(0.1, 0.8, 0.2, 1) forwards',
-            boxShadow: `0 0 15px ${p.color}`,
+            boxShadow: `0 0 10px ${p.color}`,
           }}
         />
       ))}
 
-      {/* VÃ¹ng sÃ´ng (Chá»‰ hiá»ƒn thá»‹ message náº¿u cÃ³, khÃ´ng váº½ lÆ°á»›i) */}
+      {/* Sông */}
       <div
         style={{
           position: 'absolute',
@@ -355,54 +341,30 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         }}
       >
         {riverMessage ? (
-          <div
-            key={riverMessage.text}
-            className="animate-cartoon-pop"
-            style={{
-              padding: '4px 12px',
-              borderRadius: '8px',
-              textAlign: 'center',
-              fontWeight: 900,
-              fontSize: '12px',
-              background: riverMessage.mode === 'sweet' ? '#14b8a6' : '#dc2626',
-              color: 'white',
-              border: '2px solid white',
-              boxShadow: '0 4px 0 #000',
-            }}
-          >
+          <div className="animate-cartoon-pop" style={{ padding: '4px 12px', borderRadius: '8px', fontWeight: 900, fontSize: '12px', background: riverMessage.mode === 'sweet' ? '#14b8a6' : '#dc2626', color: 'white', border: '2px solid white', boxShadow: '0 4px 0 #000' }}>
             {riverMessage.text}
           </div>
         ) : (
-          <div style={{ display: 'flex', gap: '40px', fontWeight: 900, fontSize: '18px', color: '#4a3520', fontFamily: "'Ma Shan Zheng', 'Noto Serif TC', 'STKaiti', 'KaiTi', serif" }}>
+          <div style={{ display: 'flex', gap: '40px', fontWeight: 900, fontSize: '18px', color: '#4a3520', fontFamily: "'Ma Shan Zheng', serif" }}>
             <span>楚 河</span>
             <span>漢 界</span>
           </div>
         )}
       </div>
 
-      {/* Lá»›p hiá»ƒn thá»‹ quÃ¢n cá» tÄ©nh báº±ng Canvas (Tá»‘i Æ°u hiá»‡u nÄƒng & Äá»™ sáº¯c nÃ©t) */}
-      <canvas
-        id="piece-layer"
-        width={(boardWidth + hPadding * 2)}
-        height={(boardHeight + vPadding * 2)}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          pointerEvents: 'none',
-          zIndex: 20
-        }}
-        ref={canvasRef}
-      />
+      <canvas id="piece-layer" ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 20 }} />
 
-      {/* Lá»›p tÆ°Æ¡ng tÃ¡c (Giá»¯ nguyÃªn cho sá»± kiá»‡n click) */}
-      <div style={{ position: 'absolute', left: hPadding, top: vPadding, display: 'grid', gridTemplateColumns: `repeat(${BOARD_COLS}, 0px)`, zIndex: 30 }}>
+      {/* Interaction Layer - Expanded to handle clicks comfortably at edges */}
+      <div style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', zIndex: 30 }}>
         {Array.from({ length: BOARD_ROWS }).map((_, r) => (
           Array.from({ length: BOARD_COLS }).map((_, c) => (
-            <div key={`${r}-${c}`} style={{ position: 'absolute', left: c * cellSize - cellSize / 2, top: r * cellSize - cellSize / 2, width: cellSize, height: cellSize, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => onCellClick({ r, c })}>
-              {isLegalTarget(r, c) && !board[r][c] && <div style={{ position: 'absolute', width: cellSize / 2, height: cellSize / 2, borderRadius: '50%', background: '#22c55e', border: '2px solid white', boxShadow: '0 0 10px #22c55e' }} />}
+            <div
+              key={`${r}-${c}`}
+              style={{ position: 'absolute', left: hPadding + c * cellSize - cellSize / 2, top: vPadding + r * cellSize - cellSize / 2, width: cellSize, height: cellSize, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              onClick={() => onCellClick({ r, c })}
+            >
+              {isLegalTarget(r, c) && !board[r][c] && <div style={{ width: cellSize / 2, height: cellSize / 2, borderRadius: '50%', background: '#22c55e', border: '2px solid white', boxShadow: '0 0 10px #22c55e' }} />}
               {isLegalTarget(r, c) && board[r][c] && <div style={{ position: 'absolute', inset: 0, border: '4px solid #ef4444', borderRadius: '50%', animation: 'pulse 0.5s infinite' }} />}
-              {/* QuÃ¢n cá» bá»‹ Äƒn (Explosion effect) */}
               {capturedPiece && capturedPiece.r === r && capturedPiece.c === c && (
                 <div style={{ position: 'absolute', inset: 0, animation: 'captureExplodeMega 0.3s forwards', zIndex: 50 }}>
                   <Piece piece={capturedPiece.piece} />
@@ -413,11 +375,10 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         ))}
       </div>
 
-      {/* QuÃ¢n cá» Ä‘ang di chuyá»ƒn (DÃ¹ng DOM Ä‘á»ƒ animation mÆ°á»£t mÃ ) */}
+      {/* Animating Piece */}
       {animatingPiece && (
         <div style={{ position: 'absolute', left: hPadding, top: vPadding, width: boardWidth, height: boardHeight, pointerEvents: 'none', zIndex: 100 }}>
           <div
-            className={`animating-piece ${animatingPiece.isAnimating ? 'motion-blur-extreme' : ''}`}
             style={{
               position: 'absolute',
               left: animatingPiece.fromC * cellSize - cellSize / 2,
@@ -425,9 +386,9 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
               width: cellSize,
               height: cellSize,
               transform: animatingPiece.isAnimating
-                ? `translate(${(animatingPiece.toC - animatingPiece.fromC) * cellSize}px, ${(animatingPiece.toR - animatingPiece.fromR) * cellSize}px) scale(1.5)`
+                ? `translate(${(animatingPiece.toC - animatingPiece.fromC) * cellSize}px, ${(animatingPiece.toR - animatingPiece.fromR) * cellSize}px) scale(1.2)`
                 : 'translate(0, 0) scale(1.1)',
-              transition: `transform ${animationDuration}ms cubic-bezier(1, 0, 0, 1)`,
+              transition: `transform ${animationDuration}ms cubic-bezier(0.85, 0, 0.15, 1)`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -438,31 +399,14 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         </div>
       )}
 
-      {/* CSS Animations */}
       <style>{`
-        @keyframes captureExplodeMega {
-          0% { transform: scale(1) rotate(0); filter: brightness(1) white; }
-          50% { transform: scale(3) rotate(45deg); filter: brightness(10); }
-          100% { transform: scale(0) rotate(90deg); opacity: 0; }
-        }
-        @keyframes particleFlyMega {
-          0% { transform: translate(0, 0) scale(2) rotate(0); opacity: 1; }
-          100% { transform: translate(var(--tw-translate-x), var(--tw-translate-y)) scale(0) rotate(720deg); opacity: 0; }
-        }
-        @keyframes flash {
-          0%, 100% { filter: brightness(1); }
-          50% { filter: brightness(2) contrast(1.5); }
-        }
-        @keyframes shake {
-          0%, 100% { transform: translate(0, 0); }
-          25% { transform: translate(-10px, 10px); }
-          50% { transform: translate(10px, -10px); }
-          75% { transform: translate(-5px, -5px); }
-        }
-        .animate-flash { animation: flash 0.15s ease-out; }
-        .animate-shake { animation: shake 0.2s ease-in-out infinite; }
-        .motion-blur-extreme { filter: blur(4px) contrast(2) brightness(1.5); }
-        .animate-cartoon-pop { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes captureExplodeMega { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
+        @keyframes particleFlyMega { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { opacity: 0; } }
+        @keyframes flash { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.5); } }
+        @keyframes shake { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-5px, 5px); } 50% { transform: translate(5px, -5px); } }
+        .animate-flash { animation: flash 0.2s; }
+        .animate-shake { animation: shake 0.2s; }
+        .animate-cartoon-pop { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
       `}</style>
     </div>

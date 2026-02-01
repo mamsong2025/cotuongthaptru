@@ -38,7 +38,7 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
       style={{
         width: '100%',
         height: '100%',
-        padding: '5%',
+        padding: '8%',
         boxSizing: 'border-box',
         position: 'relative',
         cursor: 'pointer',
@@ -53,12 +53,14 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
           position: 'absolute',
           inset: 0,
           borderRadius: '50%',
+          border: `3px solid ${piece.color === Color.RED ? '#dc2626' : '#111827'}`,
           boxShadow: isSelected
             ? '0 10px 30px rgba(0,0,0,0.6), 0 0 0 4px #fbbf24, inset 0 2px 10px rgba(255,255,255,0.4)'
             : isLastMove
               ? '0 5px 15px rgba(0,0,0,0.4), 0 0 0 3px #60a5fa'
               : '0 6px 12px rgba(0,0,0,0.3)',
           transition: 'all 0.3s ease',
+          boxSizing: 'border-box'
         }}
       >
         <img

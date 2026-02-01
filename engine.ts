@@ -835,7 +835,11 @@ const evaluateBoard = (board: Board): number => {
         if (piece.type === PieceType.CANNON && phase === 'OPENING') val += 20;
         if (piece.type === PieceType.HORSE && phase === 'MIDGAME') val += 10;
 
-        const rIdx = piece.color === Color.BLACK ? r : (9 - r);
+        // Sửa rIdx: Vùng mục tiêu của mỗi bên là khác nhau. 
+        // Bảng Bonus được định nghĩa cho bên đang tiến công (Hàng 0 là hàng xa nhất). 
+        // Red (9 -> 0): Mục tiêu là hàng 0 => rIdx = r
+        // Black (0 -> 9): Mục tiêu là hàng 9 => rIdx = 9 - r
+        const rIdx = piece.color === Color.RED ? r : (9 - r);
         const bonus = POSITION_BONUS[piece.type][rIdx]?.[c] || 0;
 
         // Thêm đánh giá mobility (nhẹ) để tránh bị "đè"
@@ -1129,7 +1133,7 @@ const quiescenceSearch = (board: Board, alpha: number, beta: number, isMaximizin
     return valB - valA;
   });
 
-  for (const move of captures.slice(0, 3)) { // Giới hạn 3 nước ăn
+  for (const move of captures.slice(0, 8)) { // Tăng lên 8 nước ăn để tránh sót đòn
     const nextBoard = applyMove(board, move);
     const score = quiescenceSearch(nextBoard, alpha, beta, !isMaximizing);
 
@@ -1187,7 +1191,7 @@ const negamax = (
 
   // 2. NULL MOVE PRUNING
   const inCheck = isInCheck(board, isMaximizing ? Color.BLACK : Color.RED);
-  if (!inCheck && depth >= 3 && countPieces(board) > 10) {
+  if (!inCheck && depth >= 4 && countPieces(board) > 10) { // Tăng depth min lên 4
     const R = 2;
     const score = -negamax(board, depth - 1 - R, -beta, -beta + 1, !isMaximizing);
 
@@ -1394,7 +1398,7 @@ const getOpeningMove = (board: Board): Move | null => {
 
 export const findBestMove = (board: Board, maxDepth: number, isMaximizing: boolean): Move | null => {
   const startTime = Date.now();
-  const TIME_LIMIT = 300; // 300ms max thinking time to avoid CPU spike
+  const TIME_LIMIT = 1200; // Tăng lên 1.2s để AI tính sâu hơn
 
   // 1. Use Opening Book (Safe Mode)
   if (isMaximizing && countPieces(board) > 28) {
