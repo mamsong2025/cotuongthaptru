@@ -47,12 +47,9 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
   const boardWidth = cellSize * (BOARD_COLS - 1);
   const boardHeight = cellSize * (BOARD_ROWS - 1);
 
-  // ĐIỀU CHỈNH ĐỘNG - Cho phép tinh chỉnh trực tiếp
-  const [vPaddingMultiplier, setVPaddingMultiplier] = useState(0.45);
-  const [hPaddingMultiplier, setHPaddingMultiplier] = useState(0.93);
-
-  const vPadding = cellSize * vPaddingMultiplier;
-  const hPadding = cellSize * hPaddingMultiplier;
+  // HOÀN HẢO - Giá trị đã được kiểm chứng thực tế
+  const vPadding = cellSize * 0.498;
+  const hPadding = cellSize * 0.538;
 
   const currentTheme = {
     bg: 'url("/board_royal.jpg")',
@@ -393,32 +390,6 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         .animate-cartoon-pop { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         @keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
       `}</style>
-
-      {/* DEBUG CONTROLS - Tạm thời để điều chỉnh */}
-      <div style={{
-        position: 'absolute',
-        top: 10,
-        right: 10,
-        background: 'rgba(0,0,0,0.8)',
-        color: 'white',
-        padding: '10px',
-        borderRadius: '8px',
-        fontSize: '11px',
-        zIndex: 9999,
-        fontFamily: 'monospace'
-      }}>
-        <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>🔧 ĐIỀU CHỈNH BÀN CỜ</div>
-        <div style={{ marginBottom: '5px' }}>vPadding: {vPaddingMultiplier.toFixed(3)}</div>
-        <div style={{ display: 'flex', gap: '5px', marginBottom: '8px' }}>
-          <button onClick={() => setVPaddingMultiplier(v => Math.max(0, v - 0.01))} style={{ padding: '3px 8px', background: '#444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>↑ Lên</button>
-          <button onClick={() => setVPaddingMultiplier(v => v + 0.01)} style={{ padding: '3px 8px', background: '#444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>↓ Xuống</button>
-        </div>
-        <div style={{ marginBottom: '5px' }}>hPadding: {hPaddingMultiplier.toFixed(3)}</div>
-        <div style={{ display: 'flex', gap: '5px' }}>
-          <button onClick={() => setHPaddingMultiplier(h => Math.max(0, h - 0.01))} style={{ padding: '3px 8px', background: '#444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>← Trái</button>
-          <button onClick={() => setHPaddingMultiplier(h => h + 0.01)} style={{ padding: '3px 8px', background: '#444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>→ Phải</button>
-        </div>
-      </div>
     </div>
   );
 };
