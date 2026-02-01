@@ -888,11 +888,12 @@ const App: React.FC = () => {
           {/* Bộ chọn bàn cờ mới */}
           <div className="mt-4 pt-4 border-t border-white/10">
             <div className="text-[10px] text-gray-400 uppercase tracking-widest mb-3">Tùy chọn bàn cờ</div>
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-center gap-3 flex-wrap">
               {[
                 { id: 'wooden', color: '#5c3a21', label: 'Gỗ' },
                 { id: 'jade', color: '#065f46', label: 'Ngọc' },
                 { id: 'realistic', color: '#c9a24d', label: 'Thật' },
+                { id: 'royal', color: '#8b6914', label: 'Hoàng gia' },
                 { id: 'dark', color: '#1a1a1a', label: 'Tối' }
               ].map(theme => (
                 <button

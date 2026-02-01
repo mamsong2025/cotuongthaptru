@@ -67,6 +67,11 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
       border: '#042f2e',
       shadow: '0 20px 60px rgba(0,0,0,0.8), inset 0 0 40px rgba(20,184,166,0.2)'
     },
+    royal: {
+      bg: 'url("/board_royal.jpg")',
+      border: '#8b6914',
+      shadow: '0 25px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(212,175,55,0.15)'
+    },
     dark: {
       bg: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
       border: '#333',
