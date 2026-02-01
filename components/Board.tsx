@@ -47,9 +47,9 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
   const boardWidth = cellSize * (BOARD_COLS - 1);
   const boardHeight = cellSize * (BOARD_ROWS - 1);
 
-  // DUY NHẤT 1 BÀN CỜ (Hình vuông, cao cấp)
-  const vPadding = cellSize * 0.75;
-  const hPadding = vPadding + (cellSize / 2);
+  // CÂN CHỈNH CHUẨN CHO BÀN CỜ 1:1
+  const vPadding = cellSize * 0.5;
+  const hPadding = cellSize * 1.0;
 
   const currentTheme = {
     bg: 'url("/board_royal.jpg")',
