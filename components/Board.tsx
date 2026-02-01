@@ -233,8 +233,8 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
       {/* Lớp hiển thị quân cờ tĩnh bằng Canvas (Tối ưu hiệu năng & Độ sắc nét) */}
       <canvas
         id="piece-layer"
-        width={boardWidth + hPadding * 2}
-        height={boardHeight + vPadding * 2}
+        width={(boardWidth + hPadding * 2)}
+        height={(boardHeight + vPadding * 2)}
         style={{
           position: 'absolute',
           top: 0,
@@ -244,8 +244,20 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         }}
         ref={(canvas) => {
           if (!canvas) return;
+
+          // High DPI Display Optimization
+          const dpr = window.devicePixelRatio || 1;
+          const rect = canvas.getBoundingClientRect();
+
+          // Set actual size in memory (scaled to account for extra pixel density)
+          canvas.width = (boardWidth + hPadding * 2) * dpr;
+          canvas.height = (boardHeight + vPadding * 2) * dpr;
+
           const ctx = canvas.getContext('2d');
           if (!ctx) return;
+
+          // Normalize coordinate system to use css pixels
+          ctx.scale(dpr, dpr);
 
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
