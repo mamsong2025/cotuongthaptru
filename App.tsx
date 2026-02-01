@@ -574,21 +574,15 @@ const App: React.FC = () => {
             <span className="text-5xl text-[#8b0000] font-black" style={{ fontFamily: "'Ma Shan Zheng', 'Noto Serif TC', serif" }}>將</span>
           </div>
 
-          {/* Logo Text - "Cờ Tướng" */}
-          <h1
-            className="text-5xl font-black tracking-wide"
-            style={{
-              fontFamily: "'Ma Shan Zheng', 'Noto Serif TC', serif",
-              background: 'linear-gradient(180deg, #f5d0a9 0%, #d4af37 50%, #8b6914 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
-            }}
-          >
-            Cờ Tướng Thập Trụ
-          </h1>
-          <p className="text-[#8b6914] text-sm mt-1 italic">Xiangqi Master</p>
+          {/* Logo Text - "Cờ Tướng" (Replaced with Image) */}
+          <div className="flex flex-col items-center">
+            <img
+              src="/logo_co_tuong.png"
+              alt="Cờ Tướng"
+              className="h-32 md:h-40 object-contain drop-shadow-[0_5px_15px_rgba(212,175,55,0.3)]"
+            />
+            <p className="text-[#8b6914] text-xs mt-[-10px] tracking-[0.3em] font-bold uppercase z-10">Thập Trụ • Xiangqi Master</p>
+          </div>
         </div>
 
         {/* Center Section - Menu Buttons */}
