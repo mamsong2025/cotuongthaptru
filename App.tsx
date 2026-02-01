@@ -587,11 +587,19 @@ const App: React.FC = () => {
         <div className="w-full max-w-sm rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-8 text-center relative z-10"
           style={{ background: '#f7efd8', border: '1px solid rgba(255,255,255,0.5)' }}>
 
-          {/* FLOWER DECORATION */}
+
+          {/* FLOWER DECORATION - RIGHT TOP */}
           <img
             src="/flower_branch.png"
             alt="Hoa đào"
             className="absolute -top-12 -right-12 w-48 h-auto pointer-events-none z-20 opacity-90 drop-shadow-lg"
+          />
+
+          {/* BAMBOO DECORATION - LEFT SIDE */}
+          <img
+            src="/bamboo_ink.png"
+            alt="Trúc mực"
+            className="absolute top-1/2 -translate-y-1/2 -left-20 w-32 h-auto pointer-events-none z-20 opacity-80 mix-blend-multiply drop-shadow-md"
           />
 
           {/* LOGO */}
