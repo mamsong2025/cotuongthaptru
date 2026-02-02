@@ -5,9 +5,11 @@ body {
     background: #1a1a1a;
     color: #eee;
     margin: 0;
-    overflow-x: hidden;
-    touch-action: manipulation;
-    /* Cải thiện cảm ứng trên mobile */
+    overflow: auto;
+    /* Cho phép cuộn để cứu bàn cờ nếu kéo lố */
+    touch-action: pan-x pan-y;
+    /* Cho phép dùng ngón tay vuốt để cuộn tìm bàn cờ */
+    -webkit-tap-highlight-color: transparent;
 }
 
 .chinese-font {

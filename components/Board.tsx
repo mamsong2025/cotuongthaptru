@@ -24,13 +24,18 @@ const getCellSize = () => {
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
 
-  // Trừ lề Header (~100px) và Controls (~80px)
-  const availableWidth = screenWidth - 20; // Tăng diện tích chiều ngang
-  const availableHeight = screenHeight - 180;
+  // Lấy padding từ storage để tính toán chính xác hơn (mặc định 0.5/0.65)
+  const hPad = Number(localStorage.getItem('adjHPadding')) || 0.5;
+  const vPad = Number(localStorage.getItem('adjVPadding')) || 0.65;
 
-  // Xiangqi board has 8 intervals width, 9 intervals height
-  const sizeByWidth = Math.floor(availableWidth / 9);
-  const sizeByHeight = Math.floor(availableHeight / 10);
+  // Trừ lề an toàn cho Header và Controls
+  const availableWidth = screenWidth - 20;
+  const availableHeight = screenHeight - 160;
+
+  // Tổng số "ô cờ" theo chiều ngang = 8 khoảng + 2 lần padding
+  // Tổng số "ô cờ" theo chiều dọc = 9 khoảng + 2 lần padding
+  const sizeByWidth = Math.floor(availableWidth / (8 + hPad * 2));
+  const sizeByHeight = Math.floor(availableHeight / (9 + vPad * 2));
 
   return Math.min(100, Math.max(32, Math.min(sizeByWidth, sizeByHeight)));
 };
@@ -38,18 +43,67 @@ const getCellSize = () => {
 const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove, legalMoves, riverMessage }) => {
   const [cellSize, setCellSize] = useState(getCellSize());
 
-  useEffect(() => {
-    const handleResize = () => setCellSize(getCellSize());
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  // Trạng thái tinh chỉnh thủ công - Load từ localStorage nếu có
+  const [adjHPadding, setAdjHPadding] = useState(() => {
+    const saved = localStorage.getItem('adjHPadding');
+    return saved !== null ? Number(saved) : 0.5; // Giảm lề mặc định để bàn cờ to hơn
+  });
+  const [adjVPadding, setAdjVPadding] = useState(() => {
+    const saved = localStorage.getItem('adjVPadding');
+    return saved !== null ? Number(saved) : 0.65;
+  });
+  const [adjPieceScale, setAdjPieceScale] = useState(() => Number(localStorage.getItem('adjPieceScale')) || 1.08);
+  const [adjWidthScale, setAdjWidthScale] = useState(() => Number(localStorage.getItem('adjWidthScale')) || 1.0);
+  const [adjHeightScale, setAdjHeightScale] = useState(() => Number(localStorage.getItem('adjHeightScale')) || 1.0);
+  const [adjOffsetX, setAdjOffsetX] = useState(() => Number(localStorage.getItem('adjOffsetX')) || 0);
+  const [adjOffsetY, setAdjOffsetY] = useState(() => Number(localStorage.getItem('adjOffsetY')) || 0);
+  const [adjBoardX, setAdjBoardX] = useState(() => Number(localStorage.getItem('adjBoardX')) || 0);
+  const [adjBoardY, setAdjBoardY] = useState(() => Number(localStorage.getItem('adjBoardY')) || 0);
+  const [adjMasterScale, setAdjMasterScale] = useState(() => Number(localStorage.getItem('adjMasterScale')) || 1.0);
+  const [adjBgScaleX, setAdjBgScaleX] = useState(() => Number(localStorage.getItem('adjBgScaleX')) || 1.0);
+  const [adjBgScaleY, setAdjBgScaleY] = useState(() => Number(localStorage.getItem('adjBgScaleY')) || 1.0);
+  const [adjBgShiftX, setAdjBgShiftX] = useState(() => Number(localStorage.getItem('adjBgShiftX')) || 0);
+  const [adjBgShiftY, setAdjBgShiftY] = useState(() => Number(localStorage.getItem('adjBgShiftY')) || 0);
+  const [showAdj, setShowAdj] = useState(false);
 
-  const boardWidth = cellSize * (BOARD_COLS - 1);
-  const boardHeight = cellSize * (BOARD_ROWS - 1);
+  // Tự động lưu khi có thay đổi
+  useEffect(() => {
+    localStorage.setItem('adjHPadding', adjHPadding.toString());
+    localStorage.setItem('adjVPadding', adjVPadding.toString());
+    localStorage.setItem('adjPieceScale', adjPieceScale.toString());
+    localStorage.setItem('adjWidthScale', adjWidthScale.toString());
+    localStorage.setItem('adjHeightScale', adjHeightScale.toString());
+    localStorage.setItem('adjOffsetX', adjOffsetX.toString());
+    localStorage.setItem('adjOffsetY', adjOffsetY.toString());
+    localStorage.setItem('adjBoardX', adjBoardX.toString());
+    localStorage.setItem('adjBoardY', adjBoardY.toString());
+    localStorage.setItem('adjMasterScale', adjMasterScale.toString());
+    localStorage.setItem('adjBgScaleX', adjBgScaleX.toString());
+    localStorage.setItem('adjBgScaleY', adjBgScaleY.toString());
+    localStorage.setItem('adjBgShiftX', adjBgShiftX.toString());
+    localStorage.setItem('adjBgShiftY', adjBgShiftY.toString());
+  }, [adjHPadding, adjVPadding, adjPieceScale, adjWidthScale, adjHeightScale, adjOffsetX, adjOffsetY, adjBoardX, adjBoardY, adjMasterScale, adjBgScaleX, adjBgScaleY, adjBgShiftX, adjBgShiftY]);
+
+  useEffect(() => {
+    const updateSize = () => setCellSize(getCellSize() * adjMasterScale);
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, [adjMasterScale]);
+
+  // Kích thước Container (Dựa trên ảnh nền)
+  const containerWidth = cellSize * (BOARD_COLS - 1) * adjBgScaleX;
+  const containerHeight = cellSize * (BOARD_ROWS - 1) * adjBgScaleY;
+
+  // Bù đắp việc căn giữa của Parent
+  const baseWidth = cellSize * (BOARD_COLS - 1);
+  const baseHeight = cellSize * (BOARD_ROWS - 1);
+  const visualCorrectionX = (containerWidth - baseWidth) / 2;
+  const visualCorrectionY = (containerHeight - baseHeight) / 2;
 
   // Padding cho bàn cờ - Kéo rộng 2 bên (hPadding > vPadding)
-  const vPadding = Math.round(cellSize * 0.65);
-  const hPadding = Math.round(cellSize * 1.0);
+  const vPadding = Math.round(cellSize * adjVPadding);
+  const hPadding = Math.round(cellSize * adjHPadding);
 
   const animationDuration = 350;
 
@@ -145,8 +199,8 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const logicalWidth = Math.round(boardWidth + hPadding * 2);
-    const logicalHeight = Math.round(boardHeight + vPadding * 2);
+    const logicalWidth = Math.round(containerWidth + hPadding * 2);
+    const logicalHeight = Math.round(containerHeight + vPadding * 2);
 
     // Cập nhật kích thước canvas nếu cần
     if (canvas.width !== Math.floor(logicalWidth * dpr) || canvas.height !== Math.floor(logicalHeight * dpr)) {
@@ -161,7 +215,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
     ctx.imageSmoothingQuality = 'high';
     ctx.clearRect(0, 0, logicalWidth, logicalHeight);
 
-    const PIECE_SIZE = cellSize * 1.08;
+    const PIECE_SIZE = cellSize * adjPieceScale;
     const offset = (cellSize - PIECE_SIZE) / 2;
 
     board.forEach((row, r) => {
@@ -171,8 +225,9 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
           !(capturedPiece && capturedPiece.r === r && capturedPiece.c === c)) {
 
           const img = loadedImagesRef.current[`${piece.color}_${piece.type}`];
-          const x = hPadding + c * cellSize - cellSize / 2 + offset;
-          const y = vPadding + r * cellSize - cellSize / 2 + offset;
+          // Dãn từ tâm: (c - 4) là khoảng cách tới cột giữa, (r - 4.5) là khoảng cách tới hàng giữa
+          const x = hPadding + containerWidth / 2 + (c - 4) * cellSize * adjWidthScale - PIECE_SIZE / 2 + adjOffsetX;
+          const y = vPadding + containerHeight / 2 + (r - 4.5) * cellSize * adjHeightScale - PIECE_SIZE / 2 + adjOffsetY;
 
           if (img) {
             // Shadow
@@ -184,12 +239,14 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
             // Paint piece - Round coordinates to avoid blur
             ctx.drawImage(img, Math.round(x), Math.round(y), Math.round(PIECE_SIZE), Math.round(PIECE_SIZE));
 
-            // Side color ring (Red vs Black) - Shrunk diameter to fit inside
+            // Side color ring (Red vs Black) - ALWAYS PERFECT CIRCLE
             ctx.beginPath();
+            // We use a fixed radius based on PIECE_SIZE to ensure it's not skewed by adjWidthScale/adjHeightScale
+            const ringRadius = PIECE_SIZE * 0.41;
             ctx.arc(
               Math.round(x + PIECE_SIZE / 2),
               Math.round(y + PIECE_SIZE / 2),
-              Math.round(PIECE_SIZE * 0.41), // Reduced radius (approx 82% of total size)
+              Math.round(ringRadius),
               0,
               Math.PI * 2
             );
@@ -203,11 +260,21 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
 
-            // Reset shadow
-            ctx.shadowColor = "transparent";
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
+            if (isSelected(r, c)) {
+              ctx.beginPath();
+              ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
+              ctx.strokeStyle = '#fbbf24';
+              ctx.lineWidth = 4;
+              ctx.stroke();
+            }
+
+            if (isLastMoveTo(r, c)) {
+              ctx.beginPath();
+              ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
+              ctx.strokeStyle = '#60a5fa';
+              ctx.lineWidth = 3;
+              ctx.stroke();
+            }
           }
         }
       });
@@ -216,8 +283,8 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
     if (lastMove) {
       const { from } = lastMove;
       if (!board[from.r][from.c]) {
-        const x = hPadding + from.c * cellSize;
-        const y = vPadding + from.r * cellSize;
+        const x = hPadding + containerWidth / 2 + (from.c - 4) * cellSize * adjWidthScale + adjOffsetX;
+        const y = vPadding + containerHeight / 2 + (from.r - 4.5) * cellSize * adjHeightScale + adjOffsetY;
         ctx.beginPath();
         ctx.arc(x, y, 4, 0, Math.PI * 2);
         ctx.fillStyle = '#60a5fa';
@@ -229,7 +296,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         ctx.globalAlpha = 1.0;
       }
     }
-  }, [board, imagesLoaded, animatingPiece, capturedPiece, selectedPos, lastMove, cellSize, boardWidth, boardHeight, hPadding, vPadding, isSelected, isLastMoveTo]);
+  }, [board, imagesLoaded, animatingPiece, capturedPiece, selectedPos, lastMove, cellSize, containerWidth, containerHeight, hPadding, vPadding, isSelected, isLastMoveTo, adjWidthScale, adjHeightScale, adjPieceScale, adjOffsetX, adjOffsetY]);
 
   // 3. Move Animations
   useEffect(() => {
@@ -287,21 +354,25 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
     <div
       className={`relative rounded-lg shadow-2xl flex-shrink-0 ${flash ? 'animate-flash' : ''} ${shake ? 'animate-shake' : ''}`}
       style={{
-        width: boardWidth + hPadding * 2,
-        height: boardHeight + vPadding * 2,
+        width: containerWidth + hPadding * 2,
+        height: containerHeight + vPadding * 2,
         boxShadow: '0 25px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.2)',
-        overflow: 'hidden'
+        transform: `translate(${adjBoardX + visualCorrectionX}px, ${adjBoardY + visualCorrectionY}px)`,
+        transition: showAdj ? 'none' : 'transform 0.3s ease-out'
       }}
     >
-      {/* Lớp nền bàn cờ (Brightened) */}
+      {/* Lớp nền bàn cờ (Brightened) - Có bo góc và overflow hidden ở đây */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           backgroundImage: 'url("/board_royal.jpg")',
-          backgroundSize: '100% 100%',
+          backgroundSize: `${100 * adjBgScaleX}% ${100 * adjBgScaleY}%`,
+          backgroundPosition: 'center center', // Bỏ cố định, quay về căn giữa
           filter: 'brightness(1.25) contrast(1.05)',
-          zIndex: 0
+          zIndex: 0,
+          borderRadius: '8px',
+          overflow: 'hidden'
         }}
       />
       {/* Particles */}
@@ -354,7 +425,17 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
           Array.from({ length: BOARD_COLS }).map((_, c) => (
             <div
               key={`${r}-${c}`}
-              style={{ position: 'absolute', left: hPadding + c * cellSize - cellSize / 2, top: vPadding + r * cellSize - cellSize / 2, width: cellSize, height: cellSize, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{
+                position: 'absolute',
+                left: hPadding + containerWidth / 2 + (c - 4) * cellSize * adjWidthScale - (cellSize * adjWidthScale) / 2 + adjOffsetX,
+                top: vPadding + containerHeight / 2 + (r - 4.5) * cellSize * adjHeightScale - (cellSize * adjHeightScale) / 2 + adjOffsetY,
+                width: cellSize * adjWidthScale,
+                height: cellSize * adjHeightScale,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
               onClick={() => onCellClick({ r, c })}
             >
               {isLegalTarget(r, c) && !board[r][c] && <div style={{ width: cellSize / 2, height: cellSize / 2, borderRadius: '50%', background: '#22c55e', border: '2px solid white', boxShadow: '0 0 10px #22c55e' }} />}
@@ -386,16 +467,16 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
 
       {/* Animating Piece */}
       {animatingPiece && (
-        <div style={{ position: 'absolute', left: hPadding, top: vPadding, width: boardWidth, height: boardHeight, pointerEvents: 'none', zIndex: 100 }}>
+        <div style={{ position: 'absolute', left: hPadding + adjOffsetX, top: vPadding + adjOffsetY, width: containerWidth, height: containerHeight, pointerEvents: 'none', zIndex: 100 }}>
           <div
             style={{
               position: 'absolute',
-              left: animatingPiece.fromC * cellSize - cellSize / 2,
-              top: animatingPiece.fromR * cellSize - cellSize / 2,
-              width: cellSize,
-              height: cellSize,
+              left: containerWidth / 2 + (animatingPiece.fromC - 4) * cellSize * adjWidthScale - (cellSize * adjWidthScale) / 2,
+              top: containerHeight / 2 + (animatingPiece.fromR - 4.5) * cellSize * adjHeightScale - (cellSize * adjHeightScale) / 2,
+              width: cellSize * adjWidthScale,
+              height: cellSize * adjHeightScale,
               transform: animatingPiece.isAnimating
-                ? `translate(${(animatingPiece.toC - animatingPiece.fromC) * cellSize}px, ${(animatingPiece.toR - animatingPiece.fromR) * cellSize}px) scale(1.2)`
+                ? `translate(${(animatingPiece.toC - animatingPiece.fromC) * cellSize * adjWidthScale}px, ${(animatingPiece.toR - animatingPiece.fromR) * cellSize * adjHeightScale}px) scale(1.2)`
                 : 'translate(0, 0) scale(1.1)',
               transition: `transform ${animationDuration}ms cubic-bezier(0.85, 0, 0.15, 1)`,
               display: 'flex',
@@ -420,6 +501,19 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         @keyframes pulse-gold { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } }
         .animate-pulse-gold { animation: pulse-gold 1.5s infinite ease-in-out; }
       `}</style>
+
+      {/* Nút tinh chỉnh đã ẩn để không gian chơi cờ sạch sẽ */}
+      {/* 
+      <button
+        onClick={() => setShowAdj(!showAdj)}
+        style={{ position: 'absolute', top: '-30px', right: 0, background: '#1a365d', color: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', border: '2px solid #fbbf24', zIndex: 3000, boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }}
+      >
+        {showAdj ? '✖ Đóng' : '🛠 Chỉnh tâm bàn'}
+      </button>
+      */}
+
+      {/* Bảng điều chỉnh thông số - Thu nhỏ và nằm ngoài bàn cờ */}
+      {/* Bảng điều chỉnh đã được ẩn theo yêu cầu */}
     </div>
   );
 };
