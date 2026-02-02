@@ -25,7 +25,7 @@ const getCellSize = () => {
   const screenHeight = window.innerHeight;
 
   // Trừ lề Header (~100px) và Controls (~80px)
-  const availableWidth = screenWidth - 40;
+  const availableWidth = screenWidth - 20; // Tăng diện tích chiều ngang
   const availableHeight = screenHeight - 180;
 
   // Xiangqi board has 8 intervals width, 9 intervals height
@@ -47,10 +47,9 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
   const boardWidth = cellSize * (BOARD_COLS - 1);
   const boardHeight = cellSize * (BOARD_ROWS - 1);
 
-  // Padding cho bàn cờ
-  // Padding cho bàn cờ - Đảm bảo là số nguyên để tránh nhòe hình (Sub-pixel rendering)
+  // Padding cho bàn cờ - Kéo rộng 2 bên (hPadding > vPadding)
   const vPadding = Math.round(cellSize * 0.65);
-  const hPadding = Math.round(cellSize * 0.65);
+  const hPadding = Math.round(cellSize * 1.0);
 
   const animationDuration = 350;
 
