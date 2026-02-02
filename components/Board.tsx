@@ -354,12 +354,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
           <div className="animate-cartoon-pop" style={{ padding: '4px 12px', borderRadius: '8px', fontWeight: 900, fontSize: '12px', background: riverMessage.mode === 'sweet' ? '#14b8a6' : '#dc2626', color: 'white', border: '2px solid white', boxShadow: '0 4px 0 #000' }}>
             {riverMessage.text}
           </div>
-        ) : (
-          <div style={{ display: 'flex', gap: '40px', fontWeight: 900, fontSize: '18px', color: '#4a3520', fontFamily: "'Ma Shan Zheng', serif" }}>
-            <span>楚 河</span>
-            <span>漢 界</span>
-          </div>
-        )}
+        ) : null}
       </div>
 
       <canvas id="piece-layer" ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 20 }} />
