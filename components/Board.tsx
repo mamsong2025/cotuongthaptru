@@ -32,7 +32,7 @@ const getCellSize = () => {
   const sizeByWidth = Math.floor(availableWidth / 9);
   const sizeByHeight = Math.floor(availableHeight / 10);
 
-  return Math.min(60, Math.max(28, Math.min(sizeByWidth, sizeByHeight)));
+  return Math.min(80, Math.max(32, Math.min(sizeByWidth, sizeByHeight)));
 };
 
 const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove, legalMoves, riverMessage }) => {
@@ -162,7 +162,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
     ctx.imageSmoothingQuality = 'high';
     ctx.clearRect(0, 0, logicalWidth, logicalHeight);
 
-    const PIECE_SIZE = cellSize * 0.78;
+    const PIECE_SIZE = cellSize * 0.92;
     const offset = (cellSize - PIECE_SIZE) / 2;
 
     board.forEach((row, r) => {

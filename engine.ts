@@ -793,15 +793,85 @@ const evaluateStrategic = (board: Board, color: Color, phase: 'OPENING' | 'MIDGA
   }
 
   // 13. Nhị Quỷ (Two Ghosts)
-  // Hai Xe hoặc Xe Pháo, Xe Tốt tấn công 2 góc sĩ (4,3) và (4,5) hoặc (7,3) và (7,5) ???
-  // Throat points: (2,3) & (2,5) [Black attacking Red ?? No. Red palace is 7-9. Throat is 7 ??]
-  // Palace: Red 7-9, Black 0-2.
-  // Attack Red: Throat is 7. Attack Black: Throat is 2.
   if (board[throatRow][3]?.color === color && (board[throatRow][3]?.type === PieceType.CHARIOT || board[throatRow][3]?.type === PieceType.SOLDIER)) {
     if (board[throatRow][5]?.color === color && (board[throatRow][5]?.type === PieceType.CHARIOT || board[throatRow][5]?.type === PieceType.SOLDIER)) {
-      score += 80; // Nhị quỷ
+      score += 100; // Tăng từ 80
     }
   }
+
+  // 14. An toàn Tướng (King Safety) - RẤT QUAN TRỌNG
+  const kingPos = findKing(board, color);
+  if (kingPos) {
+    // Phạt nếu mất Sĩ/Tượng
+    const lostDefenders = (2 - advisorCount) + (2 - elephantCount);
+    score -= lostDefenders * 50;
+
+    // Phạt nếu Tướng lộ mặt
+    const oppKingPos = findKing(board, opponent);
+    if (oppKingPos && oppKingPos.c === kingPos.c) {
+      let blockers = 0;
+      const rStart = Math.min(kingPos.r, oppKingPos.r) + 1;
+      const rEnd = Math.max(kingPos.r, oppKingPos.r);
+      for (let r = rStart; r < rEnd; r++) {
+        if (board[r][kingPos.c]) blockers++;
+      }
+      if (blockers === 0) score += 20; // Lộ mặt tướng có thể là thế công
+    }
+  }
+
+  // 15. Bảo vệ quân (Piece Protection)
+  if (phase !== 'OPENING') {
+    for (let r = 0; r < BOARD_ROWS; r++) {
+      for (let c = 0; c < BOARD_COLS; c++) {
+        const p = board[r][c];
+        if (p && p.color === color) {
+          if (isProtected(board, { r, c }, color)) {
+            score += 10;
+          }
+        }
+      }
+    }
+  }
+
+  // 16. Đòn Tấn Công Đôi (Double Attack/Fork) - Cạm bẫy khó chịu
+  // Kiểm tra xem có quân nào của mình đang tấn công từ 2 mục tiêu giá trị trở lên không
+  for (let r = 0; r < BOARD_ROWS; r++) {
+    for (let c = 0; c < BOARD_COLS; c++) {
+      const p = board[r][c];
+      if (p && p.color === color && (p.type === PieceType.CHARIOT || p.type === PieceType.HORSE || p.type === PieceType.CANNON || p.type === PieceType.SOLDIER)) {
+        // Tìm số lượng mục tiêu mà quân này đang đe dọa
+        let threatCount = 0;
+        const targets = getLegalMoves(board, color).filter(m => m.from.r === r && m.from.c === c && board[m.to.r][m.to.c]);
+        for (const m of targets) {
+          const victim = board[m.to.r][m.to.c];
+          if (victim && victim.color === opponent && PIECE_VALUES_PRO[victim.type] >= 270) {
+            threatCount++;
+          }
+        }
+        if (threatCount >= 2) score += 120; // Thưởng cực nặng cho đòn lưỡng liệt
+      }
+    }
+  }
+
+  // 17. Áp lực lên Tướng (King Pressure)
+  // Thưởng cho các quân cờ xâm nhập sâu vào cung của đối phương
+  const oppKing = findKing(board, opponent);
+  if (oppKing) {
+    for (let r = 0; r < BOARD_ROWS; r++) {
+      for (let c = 0; c < BOARD_COLS; c++) {
+        const p = board[r][c];
+        if (p && p.color === color && (p.type === PieceType.CHARIOT || p.type === PieceType.HORSE || p.type === PieceType.CANNON)) {
+          const dist = Math.abs(r - oppKing.r) + Math.abs(c - oppKing.c);
+          if (dist <= 3) score += 30; // Quây tướng
+        }
+      }
+    }
+  }
+
+  // 18. Kiểm soát không gian (Space Control)
+  // Ưu tiên kiểm soát nhiều ô cờ nhất có thể, đặc biệt là ở phần sân đối phương
+  const mobilityCount = getLegalMoves(board, color).length;
+  score += mobilityCount * 2; // Mỗi nước đi hợp lệ thưởng 2 điểm
 
   return score;
 };
@@ -898,6 +968,11 @@ const evaluateBoard = (board: Board): number => {
   // 4. Kiểm soát bờ sông
   score += evaluateRiverControl(board, Color.BLACK);
   score -= evaluateRiverControl(board, Color.RED);
+
+  // 5. Yếu tố "Cạm bẫy & Bất ngờ" (Deception Jitter)
+  // Thêm một chút biến số ngẫu nhiên để AI không chơi quá máy móc, tạo ra các nước đi lừa lọc
+  const jitter = Math.floor(Math.random() * 16) - 8; // +/- 8 đơn vị
+  score += jitter;
 
   return score;
 };
@@ -1171,7 +1246,8 @@ const negamax = (
   depth: number,
   alpha: number,
   beta: number,
-  isMaximizing: boolean
+  isMaximizing: boolean,
+  canNullMove: boolean = true
 ): number => {
   const alphaOrig = alpha;
   const hash = getBoardHash(board);
@@ -1189,39 +1265,42 @@ const negamax = (
     return quiescenceSearch(board, alpha, beta, isMaximizing);
   }
 
-  // 2. NULL MOVE PRUNING
   const inCheck = isInCheck(board, isMaximizing ? Color.BLACK : Color.RED);
-  if (!inCheck && depth >= 4 && countPieces(board) > 10) { // Tăng depth min lên 4
-    const R = 2;
-    const score = -negamax(board, depth - 1 - R, -beta, -beta + 1, !isMaximizing);
 
-    if (score >= beta) return beta; // Prune
+  // 2. NULL MOVE PRUNING
+  if (canNullMove && !inCheck && depth >= 3 && countPieces(board) > 10) {
+    const R = depth > 6 ? 3 : 2;
+    // Chúng ta giả định rằng ngay cả khi "bỏ lượt", đối phương vẫn không thể ép chúng ta xuống dưới beta
+    const score = -negamax(board, depth - 1 - R, -beta, -beta + 1, !isMaximizing, false);
+    if (score >= beta) return beta;
   }
 
   const moves = getLegalMoves(board, isMaximizing ? Color.BLACK : Color.RED);
-  if (moves.length === 0) return isMaximizing ? -20000 : 20000;
+  if (moves.length === 0) return inCheck ? (isMaximizing ? -20000 - depth : 20000 + depth) : 0;
 
-  // 4. MOVE ORDERING (QUAN TRỌNG)
+  // 3. MOVE ORDERING
   moves.sort((a, b) => {
-    // 1. TT Move
-    if (ttEntry?.bestMove) {
-      if (isSameMove(a, ttEntry.bestMove)) return -10000;
-      if (isSameMove(b, ttEntry.bestMove)) return 10000;
-    }
+    if (ttEntry?.bestMove && isSameMove(a, ttEntry.bestMove)) return -1000000;
+    if (ttEntry?.bestMove && isSameMove(b, ttEntry.bestMove)) return 1000000;
 
-    // 2. Captures (MVV-LVA)
     const targetA = board[a.to.r][a.to.c];
     const targetB = board[b.to.r][b.to.c];
-    const valA = targetA ? PIECE_VALUES_PRO[targetA.type] : 0;
-    const valB = targetB ? PIECE_VALUES_PRO[targetB.type] : 0;
-    const diff = valB - valA;
-    if (diff !== 0) return diff;
 
-    // 3. Killer Moves
-    if (isKillerMove(a, depth)) return -500;
-    if (isKillerMove(b, depth)) return 500;
+    if (targetA || targetB) {
+      const valA = targetA ? PIECE_VALUES_PRO[targetA.type] : 0;
+      const valB = targetB ? PIECE_VALUES_PRO[targetB.type] : 0;
+      // MVV-LVA đơn giản (con nhỏ ăn con to lên đầu)
+      const attackerA = board[a.from.r][a.from.c] ? PIECE_VALUES_PRO[board[a.from.r][a.from.c]!.type] : 0;
+      const attackerB = board[b.from.r][b.from.c] ? PIECE_VALUES_PRO[board[b.from.r][b.from.c]!.type] : 0;
 
-    // 4. History Heuristic
+      const scoreA = valA * 10 - attackerA / 100;
+      const scoreB = valB * 10 - attackerB / 100;
+      return scoreB - scoreA;
+    }
+
+    if (isKillerMove(a, depth)) return -5000;
+    if (isKillerMove(b, depth)) return 5000;
+
     const histA = historyTable[getMoveIndex(a)][getDestIndex(a)] || 0;
     const histB = historyTable[getMoveIndex(b)][getDestIndex(b)] || 0;
     return histB - histA;
@@ -1229,46 +1308,56 @@ const negamax = (
 
   let bestScore = -Infinity;
   let bestMove: Move | null = null;
+  let moveCount = 0;
 
   for (const move of moves) {
+    moveCount++;
     const nextBoard = applyMove(board, move);
-
-    // CHECK EXTENSION (Chiếu tướng gia hạn độ sâu)
-    // Nếu nước đi tạo ra chiếu tướng, ta không giảm độ sâu (newDepth = depth)
-    // Để AI tiếp tục đào sâu dòng sát cục.
     const givesCheck = isInCheck(nextBoard, isMaximizing ? Color.RED : Color.BLACK);
+
+    let score: number;
     const newDepth = givesCheck ? depth : depth - 1;
 
-    let score = -negamax(nextBoard, newDepth, -beta, -alpha, !isMaximizing);
+    // 4. PVS & LMR (Đột phá chiến lược)
+    if (moveCount === 1) {
+      // Nước đi đầu tiên (PV) - Tìm kiếm đầy đủ
+      score = -negamax(nextBoard, newDepth, -beta, -alpha, !isMaximizing);
+    } else {
+      // Thử nghiệm LMR cho các nước đi sau
+      let reduction = 0;
+      if (depth >= 3 && !inCheck && !board[move.to.r][move.to.c] && !givesCheck) {
+        reduction = (moveCount > 6) ? 2 : 1;
+        if (depth < 4) reduction = 1;
+      }
 
-    // Nếu dùng PVS:
-    // if (index > 0) {
-    //    score = -negamax(nextBoard, depth-1, -alpha-1, -alpha, !max);
-    //    if (score > alpha && score < beta) score = -negamax...
-    // }
+      // Null Window Search (PVS)
+      score = -negamax(nextBoard, newDepth - reduction, -alpha - 1, -alpha, !isMaximizing);
+
+      // Nếu điểm số vượt quá alpha nhưng vẫn nằm trong beta, phải tìm kiếm lại đầy đủ
+      if (score > alpha && reduction > 0) {
+        score = -negamax(nextBoard, newDepth, -alpha - 1, -alpha, !isMaximizing);
+      }
+      if (score > alpha && score < beta) {
+        score = -negamax(nextBoard, newDepth, -beta, -alpha, !isMaximizing);
+      }
+    }
 
     if (score > bestScore) {
       bestScore = score;
       bestMove = move;
     }
 
-    if (score > alpha) {
-      alpha = score;
-    }
-
+    if (score > alpha) alpha = score;
     if (alpha >= beta) {
-      // BETA CUTOFF
-      // Update Killer Moves
-      if (!board[move.to.r][move.to.c]) { // Quiet move
+      if (!board[move.to.r][move.to.c]) {
         storeKillerMove(move, depth);
-        // Update History
         historyTable[getMoveIndex(move)][getDestIndex(move)] += depth * depth;
       }
       break;
     }
   }
 
-  // Lưu vào bảng băm (FIFO purging if full)
+  // 5. TT Update
   if (transpositionTable.size >= MAX_TT_SIZE) {
     const firstKey = transpositionTable.keys().next().value;
     if (firstKey !== undefined) transpositionTable.delete(firstKey);
@@ -1311,38 +1400,38 @@ interface OpeningMove {
 
 // Các khai cuộc phổ biến cho AI (Đen)
 const OPENINGS: OpeningMove[][] = [
-  // 1. Pháo đầu (Central Cannon)
+  // 1. Pháo đầu (Central Cannon) - Thế công trực diện cực mạnh
   [
+    { from: { r: 2, c: 1 }, to: { r: 2, c: 4 } },
+    { from: { r: 0, c: 1 }, to: { r: 2, c: 2 } },
+    { from: { r: 0, c: 0 }, to: { r: 1, c: 0 } },
+  ],
+  // 2. Bình phong mã (Screen Horse Defense) - Phản công điềm tĩnh
+  [
+    { from: { r: 0, c: 1 }, to: { r: 2, c: 2 } },
+    { from: { r: 0, c: 7 }, to: { r: 2, c: 6 } },
+    { from: { r: 2, c: 1 }, to: { r: 2, c: 4 } },
+  ],
+  // 3. Quá cung pháo (Cross-Palace Cannon) - Lắt léo và lừa lọc
+  [
+    { from: { r: 2, c: 1 }, to: { r: 2, c: 6 } },
+    { from: { r: 0, c: 7 }, to: { r: 2, c: 6 } },
+    { from: { r: 0, c: 8 }, to: { r: 0, c: 7 } },
+  ],
+  // 4. Khởi mã cuộc (Elephant Horse Opening) - Biến hóa khôn lường
+  [
+    { from: { r: 0, c: 1 }, to: { r: 2, c: 2 } },
+    { from: { r: 2, c: 7 }, to: { r: 2, c: 6 } },
+  ],
+  // 5. Pháo điệp (Double Cannons) - Cuồng phong tấn công
+  [
+    { from: { r: 2, c: 1 }, to: { r: 2, c: 4 } },
     { from: { r: 2, c: 7 }, to: { r: 2, c: 4 } },
+  ],
+  // 6. Sĩ giác pháo (Palace-Corner Cannon) - Rình rập chờ thời
+  [
+    { from: { r: 2, c: 1 }, to: { r: 0, c: 2 } },
     { from: { r: 0, c: 1 }, to: { r: 2, c: 2 } },
-    { from: { r: 0, c: 0 }, to: { r: 1, c: 0 } }, // Xe hoành
-  ],
-  // 2. Bình phong mã (Screen Horse Defense)
-  [
-    { from: { r: 0, c: 1 }, to: { r: 2, c: 2 } },
-    { from: { r: 0, c: 7 }, to: { r: 2, c: 6 } },
-    { from: { r: 2, c: 1 }, to: { r: 2, c: 4 } }, // Pháo vào giữ (hoặc tốt lên)
-  ],
-  // 3. Tiên nhân chỉ lộ (Angel points the way - Tốt 3/7 tấn 1)
-  [
-    { from: { r: 3, c: 4 }, to: { r: 4, c: 4 } }, // Tốt đầu (hoặc tốt 3)
-    { from: { r: 0, c: 1 }, to: { r: 2, c: 2 } },
-  ],
-  // 4. Phản cung mã (Sandwich Horse)
-  [
-    { from: { r: 0, c: 1 }, to: { r: 2, c: 2 } },
-    { from: { r: 0, c: 7 }, to: { r: 2, c: 6 } },
-    { from: { r: 2, c: 1 }, to: { r: 1, c: 3 } }, // Pháo giác
-  ],
-  // 5. Thuận Pháo (Same Direction Cannon) - Đối công
-  [
-    { from: { r: 2, c: 7 }, to: { r: 2, c: 4 } }, // Pháo 8 bình 5
-    { from: { r: 0, c: 0 }, to: { r: 1, c: 0 } }, // Xe 9 tấn 1 (Xe hoành)
-  ],
-  // 6. Nghịch Pháo (Opposite Direction Cannon)
-  [
-    { from: { r: 2, c: 1 }, to: { r: 2, c: 4 } }, // Pháo 2 bình 5
-    { from: { r: 0, c: 1 }, to: { r: 2, c: 2 } }, // Mã 2 tấn 3
   ]
 ];
 
@@ -1398,7 +1487,7 @@ const getOpeningMove = (board: Board): Move | null => {
 
 export const findBestMove = (board: Board, maxDepth: number, isMaximizing: boolean): Move | null => {
   const startTime = Date.now();
-  const TIME_LIMIT = 1200; // Tăng lên 1.2s để AI tính sâu hơn
+  const TIME_LIMIT = 1500; // Tăng lên 1.5s cho tính toán chiến thuật chuyên sâu
 
   // 1. Use Opening Book (Safe Mode)
   if (isMaximizing && countPieces(board) > 28) {
@@ -1406,125 +1495,98 @@ export const findBestMove = (board: Board, maxDepth: number, isMaximizing: boole
     if (openingMove && Math.random() < 0.9) return openingMove;
   }
 
-  // 2. Iterative Deepening
+  // 2. Iterative Deepening with Aspiration Windows
   const moves = getLegalMoves(board, isMaximizing ? Color.BLACK : Color.RED);
   if (moves.length === 0) return null;
   if (moves.length === 1) return moves[0];
 
   let bestMove: Move | null = null;
-  let bestScore = -Infinity;
+  let lastIterationScore = 0;
 
-  // Start with depth 1, go as deep as time allows
-  // Max depth 10 is usually enough for <1s JS engine
-  for (let depth = 1; depth <= 8; depth++) {
-    let alpha = -Infinity;
-    let beta = Infinity;
-    let currentBestMove: Move | null = null;
+  // Giới hạn maxDepth theo personality nhưng có thể vọt lên nếu còn thời gian
+  const targetDepth = Math.max(maxDepth, 4);
+
+  for (let depth = 1; depth <= 12; depth++) {
+    let alpha = lastIterationScore - 50;
+    let beta = lastIterationScore + 50;
+
+    if (depth <= 1) {
+      alpha = -Infinity;
+      beta = Infinity;
+    }
+
+    let currentBestMove = null;
     let currentBestScore = -Infinity;
-    let depthCompleted = true; // Flag to check if current depth iteration completed
 
-    // Move ordering optimization for root node
-    moves.sort((a, b) => {
-      // 1. PV Move from previous iteration (bestMove)
-      if (bestMove && a.from.r === bestMove.from.r && a.from.c === bestMove.from.c && a.to.r === bestMove.to.r && a.to.c === bestMove.to.c) return -10000;
-      if (bestMove && b.from.r === bestMove.from.r && b.from.c === bestMove.from.c && b.to.r === bestMove.to.r && b.to.c === bestMove.to.c) return 10000;
+    // Retry with wider window if aspiration fails
+    while (true) {
+      let alphaLoop = alpha;
+      let betaLoop = beta;
 
-      // 2. Captures MVV-LVA
-      const targetA = board[a.to.r][a.to.c];
-      const targetB = board[b.to.r][b.to.c];
-      const valA = targetA ? PIECE_VALUES_PRO[targetA.type] : 0;
-      const valB = targetB ? PIECE_VALUES_PRO[targetB.type] : 0;
-      return valB - valA;
-    });
-
-    for (const move of moves) {
-      const nextBoard = applyMove(board, move);
-      const score = isMaximizing
-        ? negamax(nextBoard, depth - 1, alpha, beta, false)
-        : -negamax(nextBoard, depth - 1, -beta, -alpha, true);
-
-      // Time check inside loop to break early if timeout? 
-      // Or just break loop after full iteration?
-      // Better to finish the current root move?
-      // If we timeout in the middle of a root move calc, the score is invalid.
-      // So we generally check time at the start of new depth.
-
-      if (score > currentBestScore) {
-        currentBestScore = score;
-        currentBestMove = move;
-      }
-
-      if (isMaximizing) {
-        alpha = Math.max(alpha, score);
-      } else {
-        beta = Math.min(beta, score);
-      }
-
-      // Strict panic check
-      if (Date.now() - startTime > TIME_LIMIT) {
-        depthCompleted = false; // Mark current depth as incomplete
-        break; // Break inner loop
-      }
-    }
-
-    // Only update global best if we finished the iteration or found a better move
-    // Actually if we timeout, the current depth results might be partial (but beta cutoff logic holds).
-    // Safe strategy: Update best move from completed depths.
-
-    if (depthCompleted) { // Only update if the full depth was searched within time
-      bestMove = currentBestMove;
-      bestScore = currentBestScore;
-    } else {
-      // If we timed out during this depth, we stop deepening.
-      // The bestMove from the *previous* completed depth is already stored.
-      // If it timed out on depth 1, and no bestMove was set, then currentBestMove is the best we have.
-      if (!bestMove && currentBestMove) { // If no move from previous depths, take the partial one from depth 1
-        bestMove = currentBestMove;
-      }
-      break; // Stop deepening
-    }
-  }
-
-  // 3. BLUNDER CHECK (Safety Net)
-  // Nếu nước đi tốt nhất dẫn đến việc bị ăn quân chủ lực ngay lập tức (Depth 1 check)
-  // Thì hãy kiểm tra lại bằng Quiescence Search
-  if (bestMove) {
-    const tempBoard = applyMove(board, bestMove);
-    // Check if opponent can capture something big immediately?
-    // Use Quiescence Search from opponent perspective
-    // Current AI is Maximizing (Black). Opponent is Minimizing (Red).
-    // If we made a move, it's Red's turn. 
-    // We want to know the resulting board value.
-
-    const currentStaticScore = evaluateBoard(board);
-    const resultingScore = quiescenceSearch(tempBoard, -Infinity, Infinity, !isMaximizing);
-
-    // resultingScore is board value. 
-    // If isMaximizing (Black), large positive is good.
-    // After Black moves, it's Red turn (!isMaximizing).
-    // quiescenceSearch will minimize the score for Red.
-    // If the resulting score is, say, -500 (Red winning big), then Black blundered.
-
-    if (resultingScore < currentStaticScore - 300) { // Lost > Cannon (285)
-      // BLUNDER DETECTED!
-      // Try to find a safer move (just 1-ply search for safety)
-      // console.log("Blunder detected:", bestMove);
-      const safeMoves = moves.filter(m => {
-        const b = applyMove(board, m);
-        // Check 1-ply deep
-        const s = quiescenceSearch(b, -Infinity, Infinity, !isMaximizing);
-        return s >= currentStaticScore - 100; // Accept small loss/positional change
+      let depthMoves = [...moves];
+      // Root move ordering
+      depthMoves.sort((a, b) => {
+        if (bestMove && isSameMove(a, bestMove)) return -100000;
+        if (bestMove && isSameMove(b, bestMove)) return 100000;
+        return 0;
       });
 
-      if (safeMoves.length > 0) {
-        // Pick the one with best static evaluation
-        safeMoves.sort((a, b) => {
-          const boardA = applyMove(board, a);
-          const boardB = applyMove(board, b);
-          return evaluateBoard(boardB) - evaluateBoard(boardA); // Descending score
-        });
-        return safeMoves[0];
+      for (const move of depthMoves) {
+        if (Date.now() - startTime > TIME_LIMIT) break;
+
+        const nextBoard = applyMove(board, move);
+        const score = isMaximizing
+          ? negamax(nextBoard, depth - 1, alphaLoop, betaLoop, false)
+          : -negamax(nextBoard, depth - 1, -betaLoop, -alphaLoop, true);
+
+        if (score > currentBestScore) {
+          currentBestScore = score;
+          currentBestMove = move;
+        }
+
+        alphaLoop = Math.max(alphaLoop, score);
+        if (alphaLoop >= betaLoop) break;
       }
+
+      if (Date.now() - startTime > TIME_LIMIT) break;
+
+      // Check aspiration window
+      if (currentBestScore <= alpha && alpha > -15000) {
+        alpha = -Infinity; // Fail low, widen window
+      } else if (currentBestScore >= beta && beta < 15000) {
+        beta = Infinity; // Fail high, widen window
+      } else {
+        break; // Within window
+      }
+    }
+
+    if (Date.now() - startTime > TIME_LIMIT && depth > 1) break;
+
+    bestMove = currentBestMove;
+    lastIterationScore = currentBestScore;
+
+    // Nếu đã quá sâu so với yêu cầu và hết thời gian -> Dừng
+    if (depth >= targetDepth && Date.now() - startTime > TIME_LIMIT * 0.7) break;
+  }
+
+  // 3. BLUNDER CHECK (Hậu duệ)
+  if (bestMove) {
+    const tempBoard = applyMove(board, bestMove);
+    const resultingScore = quiescenceSearch(tempBoard, -Infinity, Infinity, !isMaximizing);
+    const currentStatic = evaluateBoard(board);
+
+    if (isMaximizing && resultingScore < currentStatic - 400) {
+      let safestMove = bestMove;
+      let bestSafeScore = resultingScore;
+      for (const m of moves) {
+        const b = applyMove(board, m);
+        const s = quiescenceSearch(b, -Infinity, Infinity, !isMaximizing);
+        if (s > bestSafeScore) {
+          bestSafeScore = s;
+          safestMove = m;
+        }
+      }
+      return safestMove;
     }
   }
 
@@ -1534,13 +1596,11 @@ export const findBestMove = (board: Board, maxDepth: number, isMaximizing: boole
 // Xóa bảng băm và cache khi bắt đầu ván mới
 export const clearTranspositionTable = () => {
   transpositionTable.clear();
-  // Xóa history table để tiết kiệm RAM
   for (let i = 0; i < 90; i++) {
     for (let j = 0; j < 90; j++) {
       historyTable[i][j] = 0;
     }
   }
-  // Xóa killer moves
   for (let d = 0; d < killerMoves.length; d++) {
     killerMoves[d] = [];
   }

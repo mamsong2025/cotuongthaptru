@@ -38,7 +38,7 @@ const Piece: React.FC<PieceProps> = ({ piece, isSelected, isLastMove }) => {
       style={{
         width: '100%',
         height: '100%',
-        padding: '8%',
+        padding: '3%',
         boxSizing: 'border-box',
         position: 'relative',
         cursor: 'pointer',
