@@ -185,17 +185,17 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
             // Paint piece - Round coordinates to avoid blur
             ctx.drawImage(img, Math.round(x), Math.round(y), Math.round(PIECE_SIZE), Math.round(PIECE_SIZE));
 
-            // Side color ring (Red vs Black) - Minimum thickness
+            // Side color ring (Red vs Black) - Shrunk diameter to fit inside
             ctx.beginPath();
             ctx.arc(
               Math.round(x + PIECE_SIZE / 2),
               Math.round(y + PIECE_SIZE / 2),
-              Math.round(PIECE_SIZE / 2 - 1),
+              Math.round(PIECE_SIZE * 0.41), // Reduced radius (approx 82% of total size)
               0,
               Math.PI * 2
             );
             ctx.strokeStyle = piece.color === 'RED' ? '#dc2626' : '#111827';
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 2;
             ctx.stroke();
 
             // Reset shadow
