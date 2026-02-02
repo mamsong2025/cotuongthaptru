@@ -204,21 +204,11 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
 
-            if (isSelected(r, c)) {
-              ctx.beginPath();
-              ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
-              ctx.strokeStyle = '#fbbf24';
-              ctx.lineWidth = 4;
-              ctx.stroke();
-            }
-
-            if (isLastMoveTo(r, c)) {
-              ctx.beginPath();
-              ctx.arc(x + PIECE_SIZE / 2, y + PIECE_SIZE / 2, PIECE_SIZE / 2 + 2, 0, Math.PI * 2);
-              ctx.strokeStyle = '#60a5fa';
-              ctx.lineWidth = 3;
-              ctx.stroke();
-            }
+            // Reset shadow
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
           }
         }
       });
@@ -370,6 +360,21 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
             >
               {isLegalTarget(r, c) && !board[r][c] && <div style={{ width: cellSize / 2, height: cellSize / 2, borderRadius: '50%', background: '#22c55e', border: '2px solid white', boxShadow: '0 0 10px #22c55e' }} />}
               {isLegalTarget(r, c) && board[r][c] && <div style={{ position: 'absolute', inset: 0, border: '4px solid #ef4444', borderRadius: '50%', animation: 'pulse 0.5s infinite' }} />}
+
+              {/* Vòng chọn quân - Thiết kế mới nhỏ gọn và tỏa sáng */}
+              {isSelected(r, c) && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="animate-pulse-gold" style={{ width: '85%', height: '85%', borderRadius: '50%', border: '3px solid #fbbf24', boxShadow: '0 0 15px #fbbf24, inset 0 0 10px #fbbf24' }} />
+                </div>
+              )}
+
+              {/* Vòng nước đi cuối - Xanh dương tinh tế */}
+              {isLastMoveTo(r, c) && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div style={{ width: '85%', height: '85%', borderRadius: '50%', border: '2px dashed #60a5fa', boxShadow: '0 0 10px #60a5fa' }} />
+                </div>
+              )}
+
               {capturedPiece && capturedPiece.r === r && capturedPiece.c === c && (
                 <div style={{ position: 'absolute', inset: 0, animation: 'captureExplodeMega 0.3s forwards', zIndex: 50 }}>
                   <Piece piece={capturedPiece.piece} />
@@ -413,6 +418,8 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
         .animate-shake { animation: shake 0.2s; }
         .animate-cartoon-pop { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+        @keyframes pulse-gold { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } }
+        .animate-pulse-gold { animation: pulse-gold 1.5s infinite ease-in-out; }
       `}</style>
     </div>
   );
