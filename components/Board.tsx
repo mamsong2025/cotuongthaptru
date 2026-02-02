@@ -162,7 +162,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
     ctx.imageSmoothingQuality = 'high';
     ctx.clearRect(0, 0, logicalWidth, logicalHeight);
 
-    const PIECE_SIZE = cellSize * 0.96;
+    const PIECE_SIZE = cellSize * 1.0;
     const offset = (cellSize - PIECE_SIZE) / 2;
 
     board.forEach((row, r) => {
