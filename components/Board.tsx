@@ -185,7 +185,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
             // Paint piece - Round coordinates to avoid blur
             ctx.drawImage(img, Math.round(x), Math.round(y), Math.round(PIECE_SIZE), Math.round(PIECE_SIZE));
 
-            // Side color ring (Red vs Black) - Tighter and thinner
+            // Side color ring (Red vs Black) - Minimum thickness
             ctx.beginPath();
             ctx.arc(
               Math.round(x + PIECE_SIZE / 2),
@@ -195,7 +195,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
               Math.PI * 2
             );
             ctx.strokeStyle = piece.color === 'RED' ? '#dc2626' : '#111827';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 1;
             ctx.stroke();
 
             // Reset shadow
