@@ -32,7 +32,7 @@ const getCellSize = () => {
   const sizeByWidth = Math.floor(availableWidth / 9);
   const sizeByHeight = Math.floor(availableHeight / 10);
 
-  return Math.min(80, Math.max(32, Math.min(sizeByWidth, sizeByHeight)));
+  return Math.min(100, Math.max(32, Math.min(sizeByWidth, sizeByHeight)));
 };
 
 const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove, legalMoves, riverMessage }) => {
@@ -49,8 +49,8 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
 
   // Padding cho bàn cờ
   // Padding cho bàn cờ - Đảm bảo là số nguyên để tránh nhòe hình (Sub-pixel rendering)
-  const vPadding = Math.round(cellSize * 0.6);
-  const hPadding = Math.round(cellSize * 0.6);
+  const vPadding = Math.round(cellSize * 0.65);
+  const hPadding = Math.round(cellSize * 0.65);
 
   const animationDuration = 350;
 
@@ -162,7 +162,7 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
     ctx.imageSmoothingQuality = 'high';
     ctx.clearRect(0, 0, logicalWidth, logicalHeight);
 
-    const PIECE_SIZE = cellSize * 1.0;
+    const PIECE_SIZE = cellSize * 1.08;
     const offset = (cellSize - PIECE_SIZE) / 2;
 
     board.forEach((row, r) => {
