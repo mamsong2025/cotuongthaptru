@@ -300,11 +300,21 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
       style={{
         width: boardWidth + hPadding * 2,
         height: boardHeight + vPadding * 2,
-        backgroundImage: 'url("/board_royal.jpg")',
-        backgroundSize: '100% 100%',
         boxShadow: '0 25px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.2)',
+        overflow: 'hidden'
       }}
     >
+      {/* Lớp nền bàn cờ (Brightened) */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: 'url("/board_royal.jpg")',
+          backgroundSize: '100% 100%',
+          filter: 'brightness(1.25) contrast(1.05)',
+          zIndex: 0
+        }}
+      />
       {/* Particles */}
       {particles.map(p => (
         <div
