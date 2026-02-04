@@ -15,7 +15,6 @@ interface BoardProps {
   onCellClick: (pos: Position) => void;
   lastMove: Move | null;
   legalMoves: Move[];
-  riverMessage?: RiverMessage | null;
 }
 
 // Kích thước ô cờ linh hoạt để đạt trạng thái "Toàn màn hình" chuẩn tỷ lệ
@@ -40,7 +39,7 @@ const getCellSize = () => {
   return Math.min(100, Math.max(32, Math.min(sizeByWidth, sizeByHeight)));
 };
 
-const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove, legalMoves, riverMessage }) => {
+const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove, legalMoves }) => {
   const [cellSize, setCellSize] = useState(getCellSize());
 
   // Trạng thái tinh chỉnh thủ công - Load từ localStorage nếu có
@@ -394,28 +393,6 @@ const Board: React.FC<BoardProps> = ({ board, selectedPos, onCellClick, lastMove
           }}
         />
       ))}
-
-      {/* Sông */}
-      <div
-        style={{
-          position: 'absolute',
-          top: vPadding + cellSize * 4,
-          left: 0,
-          right: 0,
-          height: cellSize,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 150,
-          pointerEvents: 'none',
-        }}
-      >
-        {riverMessage ? (
-          <div className="animate-cartoon-pop" style={{ padding: '4px 12px', borderRadius: '8px', fontWeight: 900, fontSize: '12px', background: riverMessage.mode === 'sweet' ? '#14b8a6' : '#dc2626', color: 'white', border: '2px solid white', boxShadow: '0 4px 0 #000' }}>
-            {riverMessage.text}
-          </div>
-        ) : null}
-      </div>
 
       <canvas id="piece-layer" ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 20 }} />
 

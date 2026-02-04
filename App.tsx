@@ -28,58 +28,58 @@ interface AIPersonality {
 
 const AI_PERSONALITIES: Record<string, AIPersonality> = {
   baby: {
-    name: 'Bé Bi',
-    depth: 2, // Giảm từ 3
-    description: 'Đang học cờ',
-    emoji: '👶',
+    name: 'Tiểu Long Nữ',
+    depth: 4,
+    description: 'Băng thanh ngọc khiết, thiên tư thông minh',
+    emoji: '❄️',
   },
   student: {
-    name: 'Tiểu Minh',
-    depth: 3, // Giảm từ 5
-    description: 'Học sinh giỏi',
-    emoji: '🧒',
+    name: 'Mộc Quế Anh',
+    depth: 5,
+    description: 'Nữ tướng anh dũng, tinh thông trận pháp',
+    emoji: '🏹',
   },
   elder: {
-    name: 'Ông Tư',
-    depth: 4, // Giảm từ 7
-    description: 'Cao thủ làng',
-    emoji: '👴',
+    name: 'Vương Mẫu Nương Nương',
+    depth: 6,
+    description: 'Mẫu nghi thiên hạ, uy nghiêm tối thượng',
+    emoji: '👑',
   },
   master: {
-    name: 'Sư Phụ',
-    depth: 4, // Giảm thêm để chạy mượt trên mobile
-    description: 'Bậc thầy cờ tướng',
-    emoji: '🧙',
+    name: 'Võ Tắc Thiên',
+    depth: 7,
+    description: 'Nữ hoàng duy nhất, bá đạo uy quyền',
+    emoji: '👸',
   },
   demon: {
-    name: 'Vua Cờ',
-    depth: 5, // Giảm từ 6 -> Tránh lag cực nặng
-    description: 'Siêu cao thủ',
-    emoji: '🤖',
+    name: 'Bạch Cốt Tinh',
+    depth: 8,
+    description: 'Yêu nữ ngàn năm, không bao giờ nhường nhịn',
+    emoji: '💀',
   },
   wise: {
-    name: 'Nữ Hiền',
-    depth: 5,
-    description: 'Điềm tĩnh, nhẹ nhàng',
-    emoji: '🧘‍♀️',
+    name: 'Hằng Nga',
+    depth: 6,
+    description: 'Cung quảng điềm tĩnh, mưu sâu tựa biển',
+    emoji: '🌙',
   },
   aggressive: {
-    name: 'Nữ Mạnh Mẽ',
-    depth: 5,
-    description: 'Chủ động, tấn công',
-    emoji: '🔥',
+    name: 'Thiết Phiến Công Chúa',
+    depth: 6,
+    description: 'Bà La Sát hung dữ, quạt gió tung trời',
+    emoji: '🌪️',
   },
   smart: {
-    name: 'Nữ Thông Minh',
-    depth: 5,
-    description: 'Mưu lược, chiến thuật',
+    name: 'Hoàng Nguyệt Anh',
+    depth: 7,
+    description: 'Kỳ nữ thông thái, am tường cơ quan',
     emoji: '🧠',
   },
   tease: {
-    name: 'Nữ Trêu Chọc',
-    depth: 4,
-    description: 'Cà khịa, trêu chọc',
-    emoji: '😏',
+    name: 'Điêu Thuyền',
+    depth: 6,
+    description: 'Mỹ nhân tuyệt thế, lắt léo mê hồn',
+    emoji: '💃',
   },
 };
 
@@ -105,11 +105,13 @@ const App: React.FC = () => {
   const [isBgmOn, setIsBgmOn] = useState<boolean>(true);
   const [undoCount, setUndoCount] = useState<number>(3);
   const [history, setHistory] = useState<{ board: BoardType, lastMove: Move | null }[]>([]);
+  const [showCheckWarning, setShowCheckWarning] = useState<boolean>(false);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const bgmAudioRef = useRef<HTMLAudioElement | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const talkOverlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const engineWorkerRef = useRef<Worker | null>(null);
 
   // Initialize Worker
@@ -137,8 +139,6 @@ const App: React.FC = () => {
     resetGame();
     playSfx(SOUNDS.START);
   };
-
-
 
   const playWoodenSfx = (isCapture = false) => {
     if (isMuted || !audioCtxRef.current) return;
@@ -242,6 +242,25 @@ const App: React.FC = () => {
       }, IDLE_LIMIT);
     }
   }, [turn, gameOver, isMuted, showChat]);
+
+  // Check Warning Effect
+  useEffect(() => {
+    if (isInCheck(board, Color.RED) && !gameOver) {
+      setShowCheckWarning(true);
+
+      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+      warningTimerRef.current = setTimeout(() => {
+        setShowCheckWarning(false);
+      }, 5000);
+    } else {
+      setShowCheckWarning(false);
+      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    }
+
+    return () => {
+      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    };
+  }, [board, gameOver]);
 
   useEffect(() => {
     const initAudio = () => {
@@ -479,6 +498,10 @@ const App: React.FC = () => {
     // Hủy trạng thái đang chọn
     setSelectedPos(null);
 
+    if (aiKey === 'demon') {
+      triggerTalk("Trong mắt Thần Cờ không có từ 'hồi cờ'. Ngươi phải trả giá cho sự sai lầm!", 'toxic');
+      return;
+    }
     triggerTalk("Hừm, đi sai thì đi lại, ta chấp!", 'sweet');
     playSfx(SOUNDS.MOVE);
   };
@@ -491,9 +514,9 @@ const App: React.FC = () => {
     setGameOver(null);
     setGameOver(null);
     setIsAiThinking(false);
-    setUndoCount(3);
+    setUndoCount(aiKey === 'demon' ? 0 : 3);
     setHistory([]);
-    triggerTalk(`${currentAI.name} sẵn sàng! Mời ngài khai cuộc!`, 'sweet');
+    triggerTalk(`${currentAI.name} sẵn sàng! Mời ngài khai cuộc!`, aiKey === 'demon' ? 'toxic' : 'sweet');
     setIsAiThinking(false);
     setShowOverlay(true);
     clearTranspositionTable();
@@ -536,15 +559,15 @@ const App: React.FC = () => {
 
             <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
               {[
-                { id: 'baby', title: 'Novice', sub: 'Mới tập chơi', label: '初學者' },
-                { id: 'student', title: 'Apprentice', sub: 'Đang học nghề', label: '學徒' },
-                { id: 'wise', title: 'Serene', sub: 'Nữ Hiền tinh anh', label: '賢者' },
-                { id: 'aggressive', title: 'Warrior', sub: 'Nữ Mạnh Mẽ áp sát', label: '戰士' },
-                { id: 'smart', title: 'Strategist', sub: 'Nữ Thông Minh mưu lược', label: '謀略' },
-                { id: 'tease', title: 'Prankster', sub: 'Nữ Trêu Chọc cà khịa', label: '逗趣' },
-                { id: 'elder', title: 'Amateur', sub: 'Thử thách cân bằng', label: '業餘' },
-                { id: 'master', title: 'Professional', sub: 'Đối thủ kinh nghiệm', label: '專業' },
-                { id: 'demon', title: 'Grandmaster', sub: 'Thử thách cực đại', label: '宗師' }
+                { id: 'baby', title: 'Long Nữ', sub: 'Băng thanh ngọc khiết', label: '龍女' },
+                { id: 'student', title: 'Quế Anh', sub: 'Nữ tướng tài ba', label: '桂英' },
+                { id: 'wise', title: 'Hằng Nga', sub: 'Cung trăng điềm tĩnh', label: '嫦娥' },
+                { id: 'aggressive', title: 'La Sát', sub: 'Thiết Phiến hung dữ', label: '羅刹' },
+                { id: 'smart', title: 'Nguyệt Anh', sub: 'Kỳ nữ thông thái', label: '月英' },
+                { id: 'tease', title: 'Điêu Thuyền', sub: 'Mỹ nhân mê hồn', label: '貂蟬' },
+                { id: 'elder', title: 'Vương Mẫu', sub: 'Mẫu nghi thiên hạ', label: '王母' },
+                { id: 'master', title: 'Tắc Thiên', sub: 'Nữ hoàng bá đạo', label: '則天' },
+                { id: 'demon', title: 'Cốt Tinh', sub: 'Yêu nữ ngàn năm', label: '骨精' }
               ].map((item, idx) => (
                 <button
                   key={item.id}
@@ -558,7 +581,7 @@ const App: React.FC = () => {
                   <div className="flex items-center justify-between relative z-10">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-white/40 flex items-center justify-center text-xl shadow-inner">
-                        {['📜', '⛑️', '🧘‍♀️', '🔥', '🧠', '😏', '🛡️', '⚔️', '👹'][idx]}
+                        {['❄️', '🏹', '🌙', '🌪️', '🧠', '💃', '👑', '👸', '💀'][idx]}
                       </div>
                       <div className="text-left">
                         <div className="font-bold tracking-wide" style={{ color: '#2f4f3a' }}>{item.title}</div>
@@ -698,14 +721,28 @@ const App: React.FC = () => {
         <p className="text-[#5c6f63] text-[10px] uppercase font-bold tracking-widest mt-1">
           {turn === Color.RED ? '⚔️ Lượt của bạn' : '🧠 AI đang tính...'}
         </p>
+      </header>
 
-        {/* CHECK WARNING */}
-        {isInCheck(board, Color.RED) && !gameOver && (
-          <div className="mt-3 text-2xl md:text-4xl font-black text-yellow-400 animate-bounce uppercase tracking-tighter bg-red-600 px-6 py-2 rounded-full border-4 border-yellow-400 shadow-[0_0_30px_rgba(239,68,68,1)]">
-            💀 CHIẾU TƯỚNG! 💀
+      {/* Đàm thoại AI - Vị trí mới ở trên bàn cờ */}
+      <div className="z-30 h-16 flex items-center justify-center w-full px-4 mb-2">
+        {showOverlay && showChat && currentTalk && (
+          <div
+            className="animate-cartoon-pop relative bg-white border-2 border-[#2f4f3a] rounded-2xl px-4 py-2 shadow-lg max-w-sm text-center"
+            style={{
+              background: currentTalk.mode === 'sweet' ? '#14b8a6' : '#dc2626',
+              color: 'white',
+              borderColor: 'white'
+            }}
+          >
+            <p className="text-xs font-black leading-tight">{currentTalk.text}</p>
+            {/* Tam giác chỉ xuống - Tạo hình bong bóng chat */}
+            <div
+              className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px]"
+              style={{ borderTopColor: currentTalk.mode === 'sweet' ? '#14b8a6' : '#dc2626' }}
+            ></div>
           </div>
         )}
-      </header>
+      </div>
 
       {/* Bàn cờ - Căn giữa chuẩn */}
       <div className="relative flex-1 flex items-center justify-center w-full my-2">
@@ -715,7 +752,6 @@ const App: React.FC = () => {
           onCellClick={handleCellClick}
           lastMove={lastMove}
           legalMoves={selectedPos ? getLegalMoves(board, Color.RED).filter(m => m.from.r === selectedPos.r && m.from.c === selectedPos.c) : []}
-          riverMessage={showOverlay && showChat ? currentTalk : null}
         />
 
         {isAiThinking && (
@@ -723,6 +759,18 @@ const App: React.FC = () => {
             <div className="bg-black/80 px-2 py-1 border border-amber-500 flex items-center gap-2 rounded">
               <div className="w-3 h-3 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
               <span className="text-[9px] font-bold text-amber-300">{currentAI.name} đang tính...</span>
+            </div>
+          </div>
+        )}
+
+        {/* CHIẾU TƯỚNG WARNING - 5s Auto Hide */}
+        {showCheckWarning && !gameOver && (
+          <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none">
+            <div className="bg-red-600/20 backdrop-blur-sm absolute inset-0 animate-pulse"></div>
+            <div className="relative z-10 bg-red-800/90 text-yellow-300 px-8 py-4 rounded-2xl border-4 border-yellow-500 shadow-[0_0_50px_rgba(220,38,38,0.8)] animate-bounce">
+              <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter drop-shadow-lg">
+                💀 CHIẾU TƯỚNG! 💀
+              </h2>
             </div>
           </div>
         )}
