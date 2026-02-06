@@ -140,8 +140,11 @@ const generateMovesForPiece = (board: Board, r: number, c: number, piece: Piece,
 };
 
 const findKing = (board: Board, color: Color): Position | null => {
-  for (let r = 0; r < BOARD_ROWS; r++) {
-    for (let c = 0; c < BOARD_COLS; c++) {
+  // Optimization: King is always in the palace (3-5 columns)
+  const startR = color === Color.BLACK ? 0 : 7;
+  const endR = color === Color.BLACK ? 2 : 9;
+  for (let r = startR; r <= endR; r++) {
+    for (let c = 3; c <= 5; c++) {
       const p = board[r][c];
       if (p && p.type === PieceType.KING && p.color === color) return { r, c };
     }
@@ -149,9 +152,9 @@ const findKing = (board: Board, color: Color): Position | null => {
   return null;
 };
 
-// Tối ưu hóa kiểm tra chiếu tướng: Không tạo toàn bộ danh sách nước đi
-export const isInCheck = (board: Board, color: Color): boolean => {
-  const kingPos = findKing(board, color);
+// Tối ưu hóa kiểm tra chiếu tướng
+export const isInCheck = (board: Board, color: Color, providedKingPos?: Position | null): boolean => {
+  const kingPos = providedKingPos || findKing(board, color);
   if (!kingPos) return true;
   const opp = color === Color.RED ? Color.BLACK : Color.RED;
 
@@ -166,17 +169,9 @@ export const isInCheck = (board: Board, color: Color): boolean => {
   }
 
   // 2. Chốt (Soldier)
-  const forward = color === Color.RED ? -1 : 1; // Hướng của mình
-  // Chốt đối phương tấn công ngược chiều forward của mình
-  // Ví dụ: Đỏ (dưới) forward -1. Chốt Đen (trên) đánh xuống (+1).
-  // Chốt Đen ở [r-1][c] tấn công [r][c].
-  // => Từ Tướng [r][c], tìm chốt Đen ở [r - (+1)][c] = [r-1][c] (tức là r + forward).
-  // => Logic trước đó đúng.
-
-  const checkDirs = [[forward, 0], [0, 1], [0, -1]];
+  const forward = color === Color.RED ? -1 : 1;
   const oppSoldier = PieceType.SOLDIER;
-
-  for (const [dr, dc] of checkDirs) {
+  for (const [dr, dc] of [[forward, 0], [0, 1], [0, -1]]) {
     const nr = kingPos.r + dr, nc = kingPos.c + dc;
     if (isWithinBoard(nr, nc)) {
       const p = board[nr][nc];
@@ -185,34 +180,16 @@ export const isInCheck = (board: Board, color: Color): boolean => {
   }
 
   // 3. Mã (Horse)
-  const horseDirs = [
-    [2, 1], [2, -1], [-2, 1], [-2, -1],
-    [1, 2], [1, -2], [-1, 2], [-1, -2]
-  ];
-  const oppHorse = PieceType.HORSE;
-
+  const horseDirs = [[2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [1, -2], [-1, 2], [-1, -2]];
   for (const [dr, dc] of horseDirs) {
     const nr = kingPos.r + dr, nc = kingPos.c + dc;
     if (isWithinBoard(nr, nc)) {
       const p = board[nr][nc];
-      if (p && p.type === oppHorse && p.color === opp) {
-        // Check blocking point (Mắt ngựa)
-        // Block is at (kingPos.r + sign(dr), kingPos.c + sign(dc)) ?? No.
-        // Rule: 
-        // Move vertical 2 (dr=2 or -2): Block at (Start.r + sign(dr), Start.c)
-        // Move horizontal 2 (dc=2 or -2): Block at (Start.r, Start.c + sign(dc))
-        // Here Start is King? No.
-        // Traditional: Horse moves from A to B. Block is near A.
-        // Here Horse is at nr, nc. Attacking King at kingPos.
-        // Block is near Horse.
-        // If Abs(dr) == 2: Block is at (nr - sign(dr), nc)
-        // If Abs(dc) == 2: Block is at (nr, nc - sign(dc))
-
+      if (p && p.type === PieceType.HORSE && p.color === opp) {
         let br = nr, bc = nc;
         if (Math.abs(dr) === 2) br -= Math.sign(dr);
         else bc -= Math.sign(dc);
-
-        if (!board[br][bc]) return true;
+        if (isWithinBoard(br, bc) && !board[br][bc]) return true;
       }
     }
   }
@@ -229,13 +206,12 @@ export const isInCheck = (board: Board, color: Color): boolean => {
           count = 1;
         } else {
           if (p.color === opp && p.type === PieceType.CANNON) return true;
-          break; // Bị cản bởi 2 quân -> Pháo không chiếu được nữa
+          break;
         }
       }
       nr += dr; nc += dc;
     }
   }
-
   return false;
 };
 
@@ -248,210 +224,251 @@ const applyMove = (board: Board, move: Move): Board => {
 
 export const getLegalMoves = (board: Board, color: Color): Move[] => {
   const moves: Move[] = [];
+  // Find king once to reuse
+  const kingPos = findKing(board, color);
+
   for (let r = 0; r < BOARD_ROWS; r++) {
     for (let c = 0; c < BOARD_COLS; c++) {
       const p = board[r][c];
       if (p && p.color === color) {
-        for (const m of generateMovesForPiece(board, r, c, p)) if (!isInCheck(applyMove(board, m), color)) moves.push(m);
+        const pieceMoves = generateMovesForPiece(board, r, c, p);
+        for (const m of pieceMoves) {
+          const nextBoard = applyMove(board, m);
+          // If the king moved, its position changed
+          const nextKingPos = (p.type === PieceType.KING) ? m.to : kingPos;
+          if (!isInCheck(nextBoard, color, nextKingPos)) moves.push(m);
+        }
       }
     }
   }
   return moves;
 };
 
+
 // =====================================================
-// AI ENGINE: MINIMAX (NEGAMAX) + ALPHA-BETA PRUNING
+// AI ENGINE: OPTIMIZED SEARCH WITH MAKE/UNMAKE
 // =====================================================
 
-// Checkmate value (large enough to exceed any material score)
+const ZOBRIST_PIECES: number[][][] = []; // [piece_index][r][c]
+const ZOBRIST_TURN: number = Math.floor(Math.random() * 0xFFFFFFFF);
+let currentHash = 0;
+
+const getPieceIndex = (piece: Piece): number => {
+  const typeIdx = Object.values(PieceType).indexOf(piece.type);
+  const colorIdx = piece.color === Color.RED ? 0 : 1;
+  return typeIdx * 2 + colorIdx;
+};
+
+// Initialize Zobrist hashing bits
+const initZobrist = () => {
+  for (let i = 0; i < 14; i++) {
+    ZOBRIST_PIECES[i] = [];
+    for (let r = 0; r < BOARD_ROWS; r++) {
+      ZOBRIST_PIECES[i][r] = [];
+      for (let c = 0; c < BOARD_COLS; c++) {
+        ZOBRIST_PIECES[i][r][c] = Math.floor(Math.random() * 0xFFFFFFFF);
+      }
+    }
+  }
+};
+initZobrist();
+
+export const computeHash = (board: Board, turn: Color): number => {
+  let hash = 0;
+  for (let r = 0; r < BOARD_ROWS; r++) {
+    for (let c = 0; c < BOARD_COLS; c++) {
+      const p = board[r][c];
+      if (p) hash ^= ZOBRIST_PIECES[getPieceIndex(p)][r][c];
+    }
+  }
+  if (turn === Color.BLACK) hash ^= ZOBRIST_TURN;
+  return hash;
+};
+
+interface UndoInfo {
+  move: Move;
+  captured: Piece | null;
+  oldHash: number;
+}
+
+const makeMove = (board: Board, move: Move): UndoInfo => {
+  const fromPiece = board[move.from.r][move.from.c]!;
+  const capturedPiece = board[move.to.r][move.to.c];
+  const oldHash = currentHash;
+
+  // Update Hash: Remove piece from 'from'
+  currentHash ^= ZOBRIST_PIECES[getPieceIndex(fromPiece)][move.from.r][move.from.c];
+  if (capturedPiece) {
+    // Update Hash: Remove captured piece
+    currentHash ^= ZOBRIST_PIECES[getPieceIndex(capturedPiece)][move.to.r][move.to.c];
+  }
+  // Update Hash: Add piece to 'to'
+  currentHash ^= ZOBRIST_PIECES[getPieceIndex(fromPiece)][move.to.r][move.to.c];
+  // Update Hash: Flip turn
+  currentHash ^= ZOBRIST_TURN;
+
+  board[move.to.r][move.to.c] = fromPiece;
+  board[move.from.r][move.from.c] = null;
+
+  return { move, captured: capturedPiece, oldHash };
+};
+
+const unmakeMove = (board: Board, undo: UndoInfo) => {
+  const piece = board[undo.move.to.r][undo.move.to.c]!;
+  board[undo.move.from.r][undo.move.from.c] = piece;
+  board[undo.move.to.r][undo.move.to.c] = undo.captured;
+  currentHash = undo.oldHash;
+};
+
+const TRANSPOSITION_TABLE = new Map<number, { depth: number, score: number, type: 'exact' | 'alpha' | 'beta', bestMove?: Move }>();
+const MAX_TT_ENTRIES = 50000; // Bảo vệ bộ nhớ, không cho phép lưu quá 50k thế cờ
 const CHECKMATE_SCORE = 1000000;
-const MAX_SEARCH_DEPTH = 3;
+const MAX_SEARCH_DEPTH = 4; // Default safe depth
 
-/**
- * Static Evaluation Function
- * Returns the score relative to the RED player.
- * Positive = RED advantage, Negative = BLACK advantage.
- */
 export const evaluateBoard = (board: Board): number => {
   let score = 0;
-
   for (let r = 0; r < BOARD_ROWS; r++) {
     for (let c = 0; c < BOARD_COLS; c++) {
       const p = board[r][c];
       if (!p) continue;
-
       let val = PIECE_VALUES_PRO[p.type];
-
-      // Add Position Bonus (PST)
-      // Note: POSITION_BONUS is defined from RED's perspective (bottom of board).
-      // For BLACK, we must flip the row index.
       const isBlack = p.color === Color.BLACK;
       const rIdx = isBlack ? (9 - r) : r;
-
-      // Safety check for array bounds
       if (POSITION_BONUS[p.type] && POSITION_BONUS[p.type][rIdx]) {
         val += POSITION_BONUS[p.type][rIdx][c] || 0;
       }
-
-      // Add Material + Position score
-      if (p.color === Color.RED) {
-        score += val;
-      } else {
-        score -= val;
-      }
+      score += (p.color === Color.RED ? val : -val);
     }
   }
-
   return score;
 };
 
-/**
- * Orders moves to improve Alpha-Beta pruning efficiency.
- * Heuristics:
- * 1. Captures (MVV-LVA: Most Valuable Victim - Least Valuable Aggressor)
- */
-const orderMoves = (moves: Move[], board: Board): Move[] => {
-  return moves.sort((a, b) => {
-    let scoreA = 0;
-    let scoreB = 0;
+const scoreMove = (move: Move, board: Board, ttBestMove?: Move): number => {
+  if (ttBestMove && move.from.r === ttBestMove.from.r && move.from.c === ttBestMove.from.c &&
+    move.to.r === ttBestMove.to.r && move.to.c === ttBestMove.to.c) return 1000000;
 
-    const targetA = board[a.to.r][a.to.c];
-    const pieceA = board[a.from.r][a.from.c];
-    if (targetA && pieceA) {
-      scoreA = 10 * PIECE_VALUES_PRO[targetA.type] - PIECE_VALUES_PRO[pieceA.type];
-    }
-
-    const targetB = board[b.to.r][b.to.c];
-    const pieceB = board[b.from.r][b.from.c];
-    if (targetB && pieceB) {
-      scoreB = 10 * PIECE_VALUES_PRO[targetB.type] - PIECE_VALUES_PRO[pieceB.type];
-    }
-
-    return scoreB - scoreA;
-  });
+  const target = board[move.to.r][move.to.c];
+  const piece = board[move.from.r][move.from.c]!;
+  if (target) {
+    return 10 * PIECE_VALUES_PRO[target.type] - PIECE_VALUES_PRO[piece.type];
+  }
+  return 0;
 };
 
-/**
- * Negamax Search with Alpha-Beta Pruning
- * @param board Current board state
- * @param depth Remaining depth
- * @param alpha Best score for current player so far
- * @param beta Best score for opponent so far
- * @param color Current player's color
- * @returns Best score for the current player
- */
 const negamax = (board: Board, depth: number, alpha: number, beta: number, color: Color): number => {
-  // Base case: Max depth reached
+  const ttEntry = TRANSPOSITION_TABLE.get(currentHash);
+  if (ttEntry && ttEntry.depth >= depth) {
+    if (ttEntry.type === 'exact') return ttEntry.score;
+    if (ttEntry.type === 'alpha' && ttEntry.score <= alpha) return alpha;
+    if (ttEntry.type === 'beta' && ttEntry.score >= beta) return beta;
+  }
+
   if (depth === 0) {
-    // Return static evaluation from CURRENT player's perspective
     const rawScore = evaluateBoard(board);
     return color === Color.RED ? rawScore : -rawScore;
   }
 
-  // Generate legal moves
   const moves = getLegalMoves(board, color);
+  if (moves.length === 0) return -CHECKMATE_SCORE + (10 - depth);
 
-  // Check Game Over (Stalemate / Checkmate)
-  // In Xiangqi, if you have no moves, you lose.
-  if (moves.length === 0) {
-    return -CHECKMATE_SCORE + (MAX_SEARCH_DEPTH - depth); // Prefer losing later
-  }
-
-  // Move Ordering
-  const orderedMoves = orderMoves(moves, board);
+  // Order moves using TT candidate first
+  moves.sort((a, b) => scoreMove(b, board, ttEntry?.bestMove) - scoreMove(a, board, ttEntry?.bestMove));
 
   let maxScore = -Infinity;
+  let originalAlpha = alpha;
+  let bestMoveInThisNode: Move | null = null;
 
-  for (const move of orderedMoves) {
-    const nextBoard = applyMove(board, move);
-
-    // Recursive Step: Flip color and negate score
-    const nextColor = color === Color.RED ? Color.BLACK : Color.RED;
-    const score = -negamax(nextBoard, depth - 1, -beta, -alpha, nextColor);
+  for (const move of moves) {
+    const undo = makeMove(board, move);
+    const score = -negamax(board, depth - 1, -beta, -alpha, color === Color.RED ? Color.BLACK : Color.RED);
+    unmakeMove(board, undo);
 
     if (score > maxScore) {
       maxScore = score;
+      bestMoveInThisNode = move;
     }
-
-    // Alpha-Beta Pruning
-    if (maxScore > alpha) {
-      alpha = maxScore;
-    }
-    if (alpha >= beta) {
-      break; // Beta Cut-off
-    }
+    if (score > alpha) alpha = score;
+    if (alpha >= beta) break;
   }
+
+  let type: 'exact' | 'alpha' | 'beta' = 'exact';
+  if (maxScore <= originalAlpha) type = 'alpha';
+  else if (maxScore >= beta) type = 'beta';
+
+  // Định kỳ dọn dẹp bộ nhớ đệm nếu quá tải
+  if (TRANSPOSITION_TABLE.size > MAX_TT_ENTRIES) {
+    TRANSPOSITION_TABLE.clear();
+  }
+
+  TRANSPOSITION_TABLE.set(currentHash, {
+    depth,
+    score: maxScore,
+    type,
+    bestMove: bestMoveInThisNode || undefined
+  });
 
   return maxScore;
 };
 
-/**
- * Finds the best move for the AI.
- * @param board Current board state
- * @param maxDepth Search depth (default 3)
- * @param isMaximizing boolean flag (Legacy support, usually means BLACK is AI)
- */
 export const findBestMove = (board: Board, maxDepth: number = 3, isMaximizing: boolean): Move | null => {
   const color = isMaximizing ? Color.BLACK : Color.RED;
-  const depth = maxDepth || MAX_SEARCH_DEPTH;
+  const targetDepth = maxDepth;
 
-  console.log(`AI Starting Calculation: Turn=${color}, Depth=${depth}`);
+  currentHash = computeHash(board, color);
   const startTime = Date.now();
+  let bestMoveLastIteration: Move | null = null;
 
-  const moves = getLegalMoves(board, color);
-  if (moves.length === 0) {
-    console.log("AI has no valid moves (Game Over).");
-    return null;
-  }
+  // Iterative Deepening for better move ordering and time control
+  for (let d = 1; d <= targetDepth; d++) {
+    const moves = getLegalMoves(board, color);
+    if (moves.length === 0) break;
 
-  const orderedMoves = orderMoves(moves, board);
+    // Order using previous best move
+    moves.sort((a, b) => scoreMove(b, board, bestMoveLastIteration || undefined) - scoreMove(a, board, bestMoveLastIteration || undefined));
 
-  let bestMove: Move | null = null;
-  let bestScore = -Infinity;
+    let bestMove: Move | null = null;
+    let bestScore = -Infinity;
+    let alpha = -Infinity;
+    let beta = Infinity;
 
-  // Alpha-Beta initialization
-  let alpha = -Infinity;
-  let beta = Infinity;
+    for (const move of moves) {
+      const undo = makeMove(board, move);
+      const score = -negamax(board, d - 1, -beta, -alpha, color === Color.RED ? Color.BLACK : Color.RED);
+      unmakeMove(board, undo);
 
-  // Root Alpha-Beta Search
-  for (const move of orderedMoves) {
-    const nextBoard = applyMove(board, move);
-    const nextColor = color === Color.RED ? Color.BLACK : Color.RED;
-
-    // Call Negamax
-    const score = -negamax(nextBoard, depth - 1, -beta, -alpha, nextColor);
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestMove = move;
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = move;
+      }
+      if (score > alpha) alpha = score;
     }
 
-    if (score > alpha) {
-      alpha = score;
+    if (bestMove) {
+      bestMoveLastIteration = bestMove;
+      const duration = Date.now() - startTime;
+      console.log(`Depth ${d} finished in ${duration}ms. Best move: ${bestMove.from.r},${bestMove.from.c}`);
     }
+
+    // Time limit: 3 seconds for professional feeling
+    if (Date.now() - startTime > 3000) break;
   }
 
-  const duration = Date.now() - startTime;
-  console.log(`AI Calculation Finished in ${duration}ms. Best Score: ${bestScore}`);
-
-  if (bestMove) {
-    console.log(`Best Move: [${bestMove.from.r}, ${bestMove.from.c}] -> [${bestMove.to.r}, ${bestMove.to.c}]`);
-  }
-
-  return bestMove;
+  return bestMoveLastIteration;
 };
 
 export const clearTranspositionTable = () => {
-  // Placeholder
+  TRANSPOSITION_TABLE.clear();
 };
 
-export const isKingAlive = (board: Board, color: Color): boolean => {
-  return findKing(board, color) !== null;
-};
+export const isKingAlive = (board: Board, color: Color): boolean => findKing(board, color) !== null;
 
 export const isValidMove = (board: Board, move: Move): boolean => {
   const piece = getPieceAt(board, move.from);
   if (!piece) return false;
-  const legalMoves = getLegalMoves(board, piece.color);
-  return legalMoves.some(m => m.from.r === move.from.r && m.from.c === move.from.c && m.to.r === move.to.r && m.to.c === move.to.c);
+  return getLegalMoves(board, piece.color).some(m =>
+    m.from.r === move.from.r && m.from.c === move.from.c &&
+    m.to.r === move.to.r && m.to.c === move.to.c
+  );
 };
+
+

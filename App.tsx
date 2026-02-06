@@ -29,55 +29,55 @@ interface AIPersonality {
 const AI_PERSONALITIES: Record<string, AIPersonality> = {
   baby: {
     name: 'Tiểu Long Nữ',
-    depth: 4,
+    depth: 3,
     description: 'Băng thanh ngọc khiết, thiên tư thông minh',
     emoji: '❄️',
   },
   student: {
     name: 'Mộc Quế Anh',
-    depth: 5,
+    depth: 4,
     description: 'Nữ tướng anh dũng, tinh thông trận pháp',
     emoji: '🏹',
   },
   elder: {
     name: 'Vương Mẫu Nương Nương',
-    depth: 6,
+    depth: 4,
     description: 'Mẫu nghi thiên hạ, uy nghiêm tối thượng',
     emoji: '👑',
   },
   master: {
     name: 'Võ Tắc Thiên',
-    depth: 7,
+    depth: 5,
     description: 'Nữ hoàng duy nhất, bá đạo uy quyền',
     emoji: '👸',
   },
   demon: {
     name: 'Bạch Cốt Tinh',
-    depth: 8,
+    depth: 6,
     description: 'Yêu nữ ngàn năm, không bao giờ nhường nhịn',
     emoji: '💀',
   },
   wise: {
     name: 'Hằng Nga',
-    depth: 6,
+    depth: 4,
     description: 'Cung quảng điềm tĩnh, mưu sâu tựa biển',
     emoji: '🌙',
   },
   aggressive: {
     name: 'Thiết Phiến Công Chúa',
-    depth: 6,
+    depth: 4,
     description: 'Bà La Sát hung dữ, quạt gió tung trời',
     emoji: '🌪️',
   },
   smart: {
     name: 'Hoàng Nguyệt Anh',
-    depth: 7,
+    depth: 5,
     description: 'Kỳ nữ thông thái, am tường cơ quan',
     emoji: '🧠',
   },
   tease: {
     name: 'Điêu Thuyền',
-    depth: 6,
+    depth: 4,
     description: 'Mỹ nhân tuyệt thế, lắt léo mê hồn',
     emoji: '💃',
   },
@@ -340,7 +340,14 @@ const App: React.FC = () => {
 
     // Sử dụng Web Worker để tính toán nước đi
     engineWorkerRef.current.onmessage = async (e: MessageEvent) => {
-      const { type, move: bestMove } = e.data;
+      const { type, move: bestMove, error } = e.data;
+
+      if (type === 'error') {
+        console.error('AI Worker error:', error);
+        setIsAiThinking(false);
+        triggerTalk("Hừm, ta đang mải nghĩ việc khác, ngươi đi lại xem nào!", 'sweet');
+        return;
+      }
 
       if (type === 'bestMove') {
         if (bestMove) {
