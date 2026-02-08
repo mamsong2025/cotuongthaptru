@@ -1,102 +1,158 @@
-# 🎮 Độ Khó AI - Sau khi tích hợp Fairy-Stockfish NNUE
+# 🔥 TĂNG ĐỘ KHÓ AI - Fairy-Stockfish NNUE
 
-## 📊 Bảng độ khó hiện tại:
+## ⬆️ **Đã tăng độ khó cho TẤT CẢ AI**
 
-| AI | Tên | Depth | Độ khó (Engine cũ) | Độ khó (Fairy-Stockfish) | Ghi chú |
-|----|-----|-------|-------------------|------------------------|---------|
-| 1️⃣ | Tiểu Long Nữ ❄️ | 3 | Dễ | **Trung bình** | Mới học |
-| 2️⃣ | Mộc Quế Anh 🏹 | 4 | Trung bình | **Khá khó** | Nữ tướng |
-| 3️⃣ | **Vương Mẫu 👑** | **3** ⬇️ | Trung bình | **Trung bình** | **ĐÃ GIẢM** |
-| 4️⃣ | **Võ Tắc Thiên 👸** | **3** ⬇️ | Khá khó | **Trung bình** | **ĐÃ GIẢM** |
-| 5️⃣ | Bạch Cốt Tinh 💀 | 6 | Rất khó | **Siêu khó** | Boss cuối |
-| 6️⃣ | Hằng Nga 🌙 | 4 | Trung bình | **Khá khó** | Điềm tĩnh |
-| 7️⃣ | Thiết Phiến 🌪️ | 4 | Trung bình | **Khá khó** | Hung dữ |
-| 8️⃣ | Hoàng Nguyệt Anh 🧠 | 5 | Khá khó | **Rất khó** | Thông minh |
-| 9️⃣ | Điêu Thuyền 💃 | 4 | Trung bình | **Khá khó** | Lắt léo |
+### 📊 Bảng so sánh:
 
-## 🔄 Thay đổi:
-
-### ✅ Đã giảm độ khó:
-- **Vương Mẫu Nương Nương** 👑: Depth 4 → **3** (giảm 1 cấp)
-- **Võ Tắc Thiên** 👸: Depth 5 → **3** (giảm 2 cấp)
-
-### 💡 Lý do:
-Với Fairy-Stockfish NNUE, mỗi depth mạnh hơn engine cũ rất nhiều:
-- **Depth 3** (Fairy) ≈ **Depth 6-8** (Engine cũ)
-- **Depth 4** (Fairy) ≈ **Depth 8-10** (Engine cũ)
-- **Depth 5** (Fairy) ≈ **Depth 10-12** (Engine cũ)
-
-## 🎯 Độ khó đề xuất (với Fairy-Stockfish):
-
-### Dễ - Trung bình:
-- ❄️ **Tiểu Long Nữ** (depth 3) - Phù hợp người mới
-- 👑 **Vương Mẫu** (depth 3) - Phù hợp người chơi bình thường
-
-### Khá khó:
-- 🏹 **Mộc Quế Anh** (depth 4) - Thử thách vừa phải
-- 🌙 **Hằng Nga** (depth 4) - Chiến thuật tốt
-- 🌪️ **Thiết Phiến** (depth 4) - Tấn công mạnh
-- 💃 **Điêu Thuyền** (depth 4) - Khó đoán
-
-### Rất khó:
-- 👸 **Võ Tắc Thiên** (depth 3) - Cân bằng tốt
-- 🧠 **Hoàng Nguyệt Anh** (depth 5) - Rất thông minh
-
-### Siêu khó (Boss):
-- 💀 **Bạch Cốt Tinh** (depth 6) - Gần như không thể thắng
-
-## 📝 Gợi ý điều chỉnh thêm (nếu cần):
-
-### Nếu vẫn còn khó:
-```typescript
-// Giảm thêm các AI khác
-student: { depth: 3 },  // Mộc Quế Anh: 4 → 3
-wise: { depth: 3 },     // Hằng Nga: 4 → 3
-aggressive: { depth: 3 }, // Thiết Phiến: 4 → 3
-tease: { depth: 3 },    // Điêu Thuyền: 4 → 3
-smart: { depth: 4 },    // Hoàng Nguyệt Anh: 5 → 4
-demon: { depth: 5 },    // Bạch Cốt Tinh: 6 → 5
-```
-
-### Nếu muốn thêm độ khó:
-```typescript
-// Tăng độ khó cho boss
-demon: { depth: 7 },    // Bạch Cốt Tinh: 6 → 7 (cực khó)
-smart: { depth: 6 },    // Hoàng Nguyệt Anh: 5 → 6 (rất khó)
-```
-
-## 🧪 Cách test:
-
-1. Chạy game: `npm run dev`
-2. Mở http://localhost:3001
-3. Chọn **Vương Mẫu** hoặc **Võ Tắc Thiên**
-4. Chơi thử và đánh giá độ khó
-
-### Độ khó mong đợi:
-- **Vương Mẫu** (depth 3): Trung bình - người chơi bình thường có thể thắng
-- **Võ Tắc Thiên** (depth 3): Trung bình - cân bằng tốt
-
-## 💡 Lưu ý:
-
-### Với Fairy-Stockfish NNUE:
-- **Depth 3** = Đủ mạnh cho người chơi trung bình
-- **Depth 4** = Khá khó, cần kỹ năng tốt
-- **Depth 5+** = Rất khó, gần như chuyên nghiệp
-
-### Thời gian tính toán:
-- **Depth 3**: ~1-2 giây
-- **Depth 4**: ~2-3 giây
-- **Depth 5**: ~3-4 giây
-- **Depth 6**: ~4-5 giây
-
-## 🎉 Kết luận:
-
-✅ **Đã giảm độ khó thành công:**
-- Vương Mẫu: Depth 4 → 3
-- Võ Tắc Thiên: Depth 5 → 3
-
-Giờ đây các AI này phù hợp hơn với người chơi bình thường khi sử dụng Fairy-Stockfish NNUE!
+| AI | Emoji | Depth cũ | Depth mới | Tăng | Độ khó mới |
+|----|-------|----------|-----------|------|-----------|
+| **Tiểu Long Nữ** | ❄️ | 3 | **4** | +1 | **Trung bình** |
+| **Mộc Quế Anh** | 🏹 | 4 | **5** | +1 | **Khá khó** |
+| **Vương Mẫu** | 👑 | 3 | **5** | +2 | **Khá khó** |
+| **Võ Tắc Thiên** | 👸 | 3 | **6** | +3 | **Rất khó** |
+| **Bạch Cốt Tinh** | 💀 | 6 | **8** | +2 | **CỰC KHÓ** |
+| **Hằng Nga** | 🌙 | 4 | **5** | +1 | **Khá khó** |
+| **Thiết Phiến** | 🌪️ | 4 | **5** | +1 | **Khá khó** |
+| **Hoàng Nguyệt Anh** | 🧠 | 5 | **7** | +2 | **Rất khó** |
+| **Điêu Thuyền** | 💃 | 4 | **5** | +1 | **Khá khó** |
 
 ---
 
-**Hãy test và cho biết độ khó có phù hợp không nhé! 🎮**
+## 🎯 **Độ khó mới (với Fairy-Stockfish NNUE):**
+
+### 🟢 Trung bình (Depth 4):
+- ❄️ **Tiểu Long Nữ** - Phù hợp người chơi có kinh nghiệm
+
+### 🟡 Khá khó (Depth 5):
+- 🏹 **Mộc Quế Anh** - Chiến thuật tốt
+- 👑 **Vương Mẫu** - Uy nghiêm, khó đánh
+- 🌙 **Hằng Nga** - Mưu sâu tựa biển
+- 🌪️ **Thiết Phiến** - Tấn công mạnh mẽ
+- 💃 **Điêu Thuyền** - Khó đoán, lắt léo
+
+### 🔴 Rất khó (Depth 6-7):
+- 👸 **Võ Tắc Thiên** (depth 6) - Nữ hoàng bá đạo
+- 🧠 **Hoàng Nguyệt Anh** (depth 7) - Cực kỳ thông minh
+
+### ⚫ CỰC KHÓ (Depth 8):
+- 💀 **Bạch Cốt Tinh** - Boss cuối, gần như bất khả chiến bại!
+
+---
+
+## 💪 **Độ mạnh ước tính (Elo):**
+
+| Depth | Elo ước tính | Cấp độ |
+|-------|--------------|--------|
+| 4 | ~2000-2100 | Cao thủ nghiệp dư |
+| 5 | ~2200-2300 | Cao thủ mạnh |
+| 6 | ~2400-2500 | Grandmaster |
+| 7 | ~2600-2700 | Super Grandmaster |
+| 8 | ~2800+ | Siêu Grandmaster |
+
+---
+
+## ⏱️ **Thời gian tính toán:**
+
+| Depth | Thời gian | Ghi chú |
+|-------|-----------|---------|
+| 4 | ~2-3 giây | Nhanh |
+| 5 | ~3-4 giây | Vừa phải |
+| 6 | ~4-5 giây | Hơi lâu |
+| 7 | ~5-6 giây | Lâu |
+| 8 | ~6-8 giây | Rất lâu |
+
+*Lưu ý: Thời gian có thể khác nhau tùy thiết bị*
+
+---
+
+## 🎮 **Khuyến nghị chơi:**
+
+### Người mới bắt đầu:
+- ❄️ **Tiểu Long Nữ** (depth 4) - Vẫn khó nhưng có thể thắng được
+
+### Người chơi trung bình:
+- 🏹 **Mộc Quế Anh** (depth 5)
+- 👑 **Vương Mẫu** (depth 5)
+- 🌙 **Hằng Nga** (depth 5)
+
+### Người chơi giỏi:
+- 🌪️ **Thiết Phiến** (depth 5)
+- 💃 **Điêu Thuyền** (depth 5)
+- 👸 **Võ Tắc Thiên** (depth 6)
+
+### Cao thủ:
+- 🧠 **Hoàng Nguyệt Anh** (depth 7)
+
+### Thử thách cực đại:
+- 💀 **Bạch Cốt Tinh** (depth 8) - **CẢNH BÁO: CỰC KHÓ!**
+
+---
+
+## 🧪 **Test ngay:**
+
+Server đang chạy tại: **http://localhost:3001**
+
+1. Refresh trang (Ctrl+F5)
+2. Chọn bất kỳ AI nào
+3. Cảm nhận độ khó mới!
+
+---
+
+## 🔧 **Nếu vẫn còn dễ:**
+
+Bạn có thể tăng thêm trong `App.tsx`:
+
+```typescript
+const AI_PERSONALITIES: Record<string, AIPersonality> = {
+  baby: { depth: 5 },      // Tiểu Long Nữ: 4 → 5
+  student: { depth: 6 },   // Mộc Quế Anh: 5 → 6
+  elder: { depth: 6 },     // Vương Mẫu: 5 → 6
+  master: { depth: 7 },    // Võ Tắc Thiên: 6 → 7
+  demon: { depth: 10 },    // Bạch Cốt Tinh: 8 → 10 (SIÊU KHỦNG)
+  wise: { depth: 6 },      // Hằng Nga: 5 → 6
+  aggressive: { depth: 6 }, // Thiết Phiến: 5 → 6
+  smart: { depth: 8 },     // Hoàng Nguyệt Anh: 7 → 8
+  tease: { depth: 6 },     // Điêu Thuyền: 5 → 6
+};
+```
+
+**⚠️ Cảnh báo**: Depth 10 có thể mất 10-15 giây mỗi nước!
+
+---
+
+## 🔥 **Nếu vẫn còn dễ quá:**
+
+### Tăng thời gian tính toán:
+
+Trong `engine.worker.ts`, dòng 40:
+
+```typescript
+// Tăng thời gian từ 500ms lên 1000ms mỗi depth
+const timeMs = Math.min(depth * 1000, 10000); // Max 10 giây
+```
+
+Hoặc tăng depth thêm 2x:
+
+```typescript
+// Dòng 42: Tăng depth gấp đôi
+bestMove = await getFairyStockfishMove(board, color, depth * 3, timeMs);
+```
+
+---
+
+## 📊 **Kết luận:**
+
+✅ **Đã tăng độ khó toàn bộ AI**
+- Depth thấp nhất: **4** (Tiểu Long Nữ)
+- Depth cao nhất: **8** (Bạch Cốt Tinh)
+- Trung bình: **5-6** (Khá khó - Rất khó)
+
+🎯 **Độ khó hiện tại:**
+- **Trung bình**: 1 AI (Tiểu Long Nữ)
+- **Khá khó**: 5 AI (Quế Anh, Vương Mẫu, Hằng Nga, Thiết Phiến, Điêu Thuyền)
+- **Rất khó**: 2 AI (Võ Tắc Thiên, Hoàng Nguyệt Anh)
+- **Cực khó**: 1 AI (Bạch Cốt Tinh)
+
+---
+
+**🔥 Giờ đây AI sẽ KHÓ HƠN NHIỀU! Chúc bạn may mắn! 💪**
