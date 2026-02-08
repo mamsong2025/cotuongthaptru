@@ -41,13 +41,13 @@ const AI_PERSONALITIES: Record<string, AIPersonality> = {
   },
   elder: {
     name: 'Vương Mẫu Nương Nương',
-    depth: 4,
+    depth: 3,
     description: 'Mẫu nghi thiên hạ, uy nghiêm tối thượng',
     emoji: '👑',
   },
   master: {
     name: 'Võ Tắc Thiên',
-    depth: 5,
+    depth: 3,
     description: 'Nữ hoàng duy nhất, bá đạo uy quyền',
     emoji: '👸',
   },
@@ -416,7 +416,9 @@ const App: React.FC = () => {
       type: 'findBestMove',
       board: currentBoard,
       depth: currentAI.depth,
-      isMaximizing: true
+      isMaximizing: true,
+      turn: Color.BLACK, // AI plays as BLACK
+      useFairy: true // Enable Fairy-Stockfish if available
     });
   }, [isMuted, currentAI, showChat, startIdleTimer, gameOver, isAiThinking]);
 

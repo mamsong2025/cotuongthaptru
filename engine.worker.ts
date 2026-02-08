@@ -1,19 +1,75 @@
-
 import { findBestMove, clearTranspositionTable } from './engine';
-import { Board } from './types';
+import { getFairyStockfishMove, initFairyStockfish } from './fairyStockfish';
+import { Board, Color } from './types';
 
-self.onmessage = (e: MessageEvent) => {
-    const { type, board, depth, isMaximizing } = e.data;
+let useFairyStockfish = false;
+let fairyStockfishReady = false;
+
+// Initialize Fairy-Stockfish on worker startup
+(async () => {
+    try {
+        console.log('[Worker] Initializing Fairy-Stockfish WASM...');
+        fairyStockfishReady = await initFairyStockfish();
+        if (fairyStockfishReady) {
+            console.log('[Worker] ✅ Fairy-Stockfish ready! Using NNUE engine.');
+            useFairyStockfish = true;
+        } else {
+            console.log('[Worker] ⚠️ Fairy-Stockfish not available, using fallback engine.');
+        }
+    } catch (error) {
+        console.error('[Worker] Failed to initialize Fairy-Stockfish:', error);
+        useFairyStockfish = false;
+    }
+})();
+
+self.onmessage = async (e: MessageEvent) => {
+    const { type, board, depth, isMaximizing, turn, useFairy } = e.data;
 
     if (type === 'findBestMove') {
         try {
-            const bestMove = findBestMove(board, depth, isMaximizing);
+            let bestMove;
+
+            // Use Fairy-Stockfish if available and requested
+            if (useFairy !== false && useFairyStockfish && fairyStockfishReady) {
+                console.log('[Worker] Using Fairy-Stockfish NNUE engine');
+                const color = turn || (isMaximizing ? Color.BLACK : Color.RED);
+
+                // Map depth to time (higher depth = more time)
+                const timeMs = Math.min(depth * 500, 5000); // Max 5 seconds
+
+                bestMove = await getFairyStockfishMove(board, color, depth * 2, timeMs);
+
+                if (!bestMove) {
+                    console.warn('[Worker] Fairy-Stockfish returned no move, falling back to original engine');
+                    bestMove = findBestMove(board, depth, isMaximizing);
+                }
+            } else {
+                console.log('[Worker] Using original engine');
+                bestMove = findBestMove(board, depth, isMaximizing);
+            }
+
             self.postMessage({ type: 'bestMove', move: bestMove });
         } catch (error) {
-            console.error('Worker error:', error);
+            console.error('[Worker] Error:', error);
             self.postMessage({ type: 'error', error: String(error) });
         }
     } else if (type === 'clear') {
         clearTranspositionTable();
+    } else if (type === 'setEngine') {
+        // Allow switching engines on the fly
+        const { engine } = e.data;
+        if (engine === 'fairy' && fairyStockfishReady) {
+            useFairyStockfish = true;
+            self.postMessage({ type: 'engineSet', engine: 'fairy' });
+        } else {
+            useFairyStockfish = false;
+            self.postMessage({ type: 'engineSet', engine: 'original' });
+        }
+    } else if (type === 'getEngineStatus') {
+        self.postMessage({
+            type: 'engineStatus',
+            fairyReady: fairyStockfishReady,
+            currentEngine: useFairyStockfish ? 'fairy' : 'original'
+        });
     }
 };

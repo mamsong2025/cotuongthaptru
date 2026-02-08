@@ -40,6 +40,9 @@ export default defineConfig(({ mode }) => {
     define: {
       'process.env.VITE_GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY),
     },
+    worker: {
+      format: 'es', // Use ES modules for workers to support code splitting
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
