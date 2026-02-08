@@ -34,10 +34,11 @@ self.onmessage = async (e: MessageEvent) => {
                 console.log('[Worker] Using Fairy-Stockfish NNUE engine');
                 const color = turn || (isMaximizing ? Color.BLACK : Color.RED);
 
-                // Map depth to time (higher depth = more time)
-                const timeMs = Math.min(depth * 500, 5000); // Max 5 seconds
+                // Tăng thời gian suy nghĩ: 1 giây cho mỗi depth, tối đa 15 giây
+                const timeMs = Math.min(depth * 1000, 15000);
 
-                bestMove = await getFairyStockfishMove(board, color, depth * 2, timeMs);
+                // Tăng depth thực tế gửi cho engine (X2.5 lần tham số đầu vào)
+                bestMove = await getFairyStockfishMove(board, color, depth * 2.5, timeMs);
 
                 if (!bestMove) {
                     console.warn('[Worker] Fairy-Stockfish returned no move, falling back to original engine');
